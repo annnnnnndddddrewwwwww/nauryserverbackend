@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Naury Utility</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <!-- Ambient gradient mesh (decorative, sits behind the particle canvas) -->
+    <div class="bg-mesh" aria-hidden="true"></div>
+
+    <!-- Floating glow orbs: color source that the glass panels refract (Apple-style liquid glass) -->
+    <div class="glow-orb glow-orb-1" aria-hidden="true"></div>
+    <div class="glow-orb glow-orb-2" aria-hidden="true"></div>
+    <div class="glow-orb glow-orb-3" aria-hidden="true"></div>
+
+    <!-- Custom titlebar -->
+    <div class="custom-titlebar pywebview-drag-region">
+        <div class="titlebar-title">
+            <img src="logo.png" width="14" height="14" alt=""> Naury Utility
+        </div>
+        <div class="titlebar-controls">
+            <button onclick="window.pywebview.api.minimize_window()" aria-label="Minimizar"><i class="fa-solid fa-minus"></i></button>
+            <button onclick="window.pywebview.api.maximize_window()" aria-label="Maximizar"><i class="fa-regular fa-square"></i></button>
+            <button class="close-btn" onclick="window.pywebview.api.close_window()" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+    </div>
+
+    <!-- Loading screen -->
+    <div id="loading-screen">
+        <div class="loader-content">
+            <img src="logo.png" alt="Logo" class="cinematic-logo">
+            <h2 class="cinematic-text">NAURY UTILITY</h2>
+            <div class="spinner cinematic-spinner"></div>
+            <div id="loading-status" class="loading-status-text">Inicializando Motor Core...</div>
+            <div class="loading-progress"><div class="loading-progress-fill"></div></div>
+        </div>
+    </div>
+
+    <!-- License overlay -->
+    <div id="license-overlay">
+        <canvas id="licenseCanvas"></canvas>
+        <div class="license-card glass">
+            <div class="license-header-strip"></div>
+            <div class="license-logo-ring">
+                <img src="logo.png" alt="Naury" class="license-logo-img" onerror="this.style.display='none'">
+            </div>
+            <div class="license-brand">NAURY SECURITY ENGINE</div>
+            <h2 class="license-title">Verificación de Licencia</h2>
+            <p class="license-subtitle">Introduce tu clave de acceso exclusiva para enlazar este hardware con tu licencia.</p>
+
+            <div class="license-input-wrapper">
+                <i class="fa-solid fa-key license-input-icon"></i>
+                <input type="text" id="license-input" class="license-input" placeholder="NAURY-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false">
+            </div>
+
+            <button id="license-submit-btn" class="license-btn">
+                <i class="fa-solid fa-fingerprint"></i>
+                <span>Autenticar Acceso</span>
+            </button>
+
+            <div id="license-attempts-bar">
+                <span class="attempt-dot active" id="dot-1"></span>
+                <span class="attempt-dot active" id="dot-2"></span>
+                <span class="attempt-dot active" id="dot-3"></span>
+            </div>
+            <div id="license-attempts-text">3 intentos restantes</div>
+
+            <div id="license-error-msg" class="license-error"></div>
+
+            <div class="license-footer">
+                <i class="fa-solid fa-shield-halved"></i> Protegido por Naury Anti-Tamper Shield v1.0
+            </div>
+        </div>
+    </div>
+
+    <!-- Neural network background canvas -->
+    <canvas id="networkCanvas"></canvas>
+
+    <!-- Main app -->
+    <div class="app-container" id="main-app" style="opacity: 0;">
+
+        <!-- Top navigation dock -->
+        <nav class="topnav">
+            <div class="topnav-brand">
+                <img src="logo.png" alt="Naury" class="app-logo">
+                <div>
+                    <h2>Naury</h2>
+                    <span class="version">Utility PRO v1.0</span>
+                </div>
+            </div>
+
+            <ul class="nav-links">
+                <li class="active" data-target="dashboard"><span class="nav-label">Dashboard</span><span class="nav-icon"><i class="fa-solid fa-gauge-high"></i></span></li>
+
+                <div class="nav-divider" aria-hidden="true"></div>
+                <li data-target="tweaks_fps"><span class="nav-label">FPS &amp; Ping</span><span class="nav-icon"><i class="fa-solid fa-crosshairs"></i></span></li>
+                <li data-target="tweaks_perf"><span class="nav-label">Rendimiento</span><span class="nav-icon"><i class="fa-solid fa-rocket"></i></span></li>
+                <li data-target="tweaks_priv"><span class="nav-label">Privacidad</span><span class="nav-icon"><i class="fa-solid fa-user-shield"></i></span></li>
+                <li data-target="tweaks_srv"><span class="nav-label">Servicios</span><span class="nav-icon"><i class="fa-solid fa-server"></i></span></li>
+                <li data-target="tweaks_ext"><span class="nav-label">Modo Extremo</span><span class="nav-icon"><i class="fa-solid fa-skull"></i></span></li>
+
+                <div class="nav-divider" aria-hidden="true"></div>
+                <li data-target="debloater"><span class="nav-label">Debloater Avanzado</span><span class="nav-icon"><i class="fa-solid fa-trash-can-arrow-up"></i></span></li>
+                <li data-target="games"><span class="nav-label">Game Profiles</span><span class="nav-icon"><i class="fa-solid fa-gamepad"></i></span></li>
+                <li data-target="fixes"><span class="nav-label">Fixes</span><span class="nav-icon"><i class="fa-solid fa-wrench"></i></span></li>
+                <li data-target="cleaner"><span class="nav-label">Utilitarios</span><span class="nav-icon"><i class="fa-solid fa-broom"></i></span></li>
+                <li data-target="restore"><span class="nav-label">Restore Point</span><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span></li>
+
+                <div class="nav-divider" aria-hidden="true"></div>
+                <li data-target="startup"><span class="nav-label">Arranque</span><span class="nav-icon"><i class="fa-solid fa-power-off"></i></span></li>
+                <li data-target="diskspace"><span class="nav-label">Disco &amp; Archivos</span><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span></li>
+                <li data-target="repair"><span class="nav-label">Diagnóstico</span><span class="nav-icon"><i class="fa-solid fa-stethoscope"></i></span></li>
+            </ul>
+
+            <div class="sidebar-profile">
+                <div class="profile-avatar">
+                    <i class="fa-solid fa-user"></i>
+                    <div class="pulse"></div>
+                </div>
+                <div class="profile-info">
+                    <span class="profile-name" id="license-owner-name">Premium User</span>
+                    <span class="profile-role">License Active</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="content">
+            <header>
+                <h1 id="page-title">Información del Sistema</h1>
+                <div class="user-info">
+                    <i class="fa-solid fa-shield-halved"></i> Root Mode
+                </div>
+            </header>
+
+            <!-- Dashboard -->
+            <section id="dashboard" class="page active dark-tech-dash">
+                <div class="dash-grid-new">
+                    
+                    <!-- Columna Izquierda: Biblioteca Juegos (Ocultada por petición del usuario) -->
+                    <div class="dash-col-left glass-card module-games" style="display: none;">
+                        <h3 class="glass-title">Biblioteca de Juegos</h3>
+                        <div class="games-grid-glass" id="dashboard-games-container">
+                            <!-- Tarjetas de juegos inyectadas por JS -->
+                        </div>
+                    </div>
+
+                    <!-- Columna Derecha: Hardware & Rendimiento -->
+                    <div class="dash-col-right">
+                        
+                        <!-- Fila Superior: Performance & Health Overview -->
+                        <div class="glass-card module-health-overview">
+                            <h3 class="glass-title">Performance & Health Overview</h3>
+                            <div class="health-overview-content">
+                                
+                                <!-- Anillo de Salud -->
+                                <div class="health-ring-container">
+                                    <span class="health-label-top">System Health</span>
+                                    <div class="health-gauge">
+                                        <svg viewBox="0 0 120 120" class="gauge-ring">
+                                            <circle class="gauge-track" cx="60" cy="60" r="52"></circle>
+                                            <circle class="gauge-fill" id="health-gauge-fill" cx="60" cy="60" r="52" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"></circle>
+                                        </svg>
+                                        <div class="gauge-value">
+                                            <strong id="health-status-label" class="glow-text-green">ANALIZANDO</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Gráficos de CPU y GPU -->
+                                <div class="health-charts">
+                                    <div class="chart-box">
+                                        <span class="chart-label">CPU Usage</span>
+                                        <div class="chart-canvas-wrap">
+                                            <canvas id="cpuLineChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="chart-box">
+                                        <span class="chart-label">GPU Temperatura</span>
+                                        <div class="chart-canvas-wrap">
+                                            <canvas id="gpuLineChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Barras Verticales RAM/VRAM -->
+                                <div class="health-bars">
+                                    <div class="v-bar-container">
+                                        <span class="v-bar-label">RAM</span>
+                                        <div class="v-bar-track">
+                                            <div class="v-bar-fill fill-ram" id="ram-v-bar"></div>
+                                        </div>
+                                    </div>
+                                    <div class="v-bar-container">
+                                        <span class="v-bar-label">VRAM</span>
+                                        <div class="v-bar-track">
+                                            <div class="v-bar-fill fill-vram" id="vram-v-bar"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                        </div>
+
+                        <!-- Fila Media: CPU / GPU Status + Almacenamiento -->
+                        <div class="dash-row-mid">
+                            <div class="glass-card module-cpu-gpu">
+                                <h3 class="glass-title">CPU / GPU Status</h3>
+                                <div class="status-grid">
+                                    <div class="status-item">
+                                        <div class="status-head">
+                                            <div class="status-icon-box"><i class="fa-solid fa-microchip icon-cpu"></i></div>
+                                            <span id="hw-cpu-name">Analizando...</span>
+                                        </div>
+                                        <div class="status-data">
+                                            <div class="data-row"><span>Core Count:</span> <span id="hw-cpu-cores">--</span></div>
+                                            <div class="data-row"><span>Load:</span> <span id="hw-cpu-load">--</span></div>
+                                        </div>
+                                    </div>
+                                    <div class="status-item">
+                                        <div class="status-head">
+                                            <div class="status-icon-box" id="gpu-logo-box"><i class="fa-solid fa-display icon-gpu"></i></div>
+                                            <span id="hw-gpu-name">Analizando...</span>
+                                        </div>
+                                        <div class="status-data">
+                                            <div class="data-row"><span>Driver:</span> <span id="hw-gpu-driver" style="cursor: pointer; text-decoration: underline;" title="Haz clic para actualizar">--</span></div>
+                                            <div class="data-row"><span>Memory:</span> <span id="hw-gpu-mem">--</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="glass-card module-storage">
+                                <h3 class="glass-title">MEMORIA Y ALMACENAMIENTO</h3>
+                                <div class="storage-list">
+                                    <div class="storage-item">
+                                        <div class="st-icon-box"><i class="fa-solid fa-memory"></i></div>
+                                        <span class="st-label">Memoria</span>
+                                        <span class="st-val" id="hw-ram-val">-- GB</span>
+                                    </div>
+                                    <div class="storage-item">
+                                        <div class="st-icon-box"><i class="fa-solid fa-hard-drive"></i></div>
+                                        <span class="st-label">Almacenamiento Local</span>
+                                        <span class="st-val" id="hw-disk-val">-- GB</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Fila Inferior: Acciones Rápidas + Red -->
+                        <div class="dash-row-bottom">
+                            <div class="glass-card module-actions">
+                                <h3 class="glass-title">ACCIONES RÁPIDAS</h3>
+                                <div class="action-btn-red" onclick="window.location.hash='#debloater'">
+                                    <div class="action-icon-wrap"><i class="fa-solid fa-broom"></i></div>
+                                    <div class="action-text">
+                                        <h4>Limpieza Profunda</h4>
+                                        <p>Ejecuta limpieza avanzada y máxima optimización.</p>
+                                    </div>
+                                    <i class="fa-solid fa-chevron-right action-arrow"></i>
+                                </div>
+                            </div>
+                            
+                            <div class="glass-card module-network">
+                                <h3 class="glass-title">RED Y CONECTIVIDAD <i class="fa-solid fa-wifi float-right text-cyan"></i></h3>
+                                <div class="net-stats" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.8rem; color: var(--text-secondary); font-weight: 500;">
+                                    <span><i class="fa-solid fa-arrow-down" style="color:var(--cyan)"></i> <span id="net-dl">0.0</span> Mbps</span>
+                                    <span><i class="fa-solid fa-arrow-up" style="color:var(--primary-2)"></i> <span id="net-ul">0.0</span> Mbps</span>
+                                </div>
+                                <div class="network-chart-wrap">
+                                    <canvas id="netLineChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tweaks pages (populated dynamically by script.js) -->
+            <section id="tweaks_fps" class="page tweaks-page"><div class="tweaks-container"></div></section>
+            <section id="tweaks_perf" class="page tweaks-page"><div class="tweaks-container"></div></section>
+            <section id="tweaks_priv" class="page tweaks-page"><div class="tweaks-container"></div></section>
+            <section id="tweaks_srv" class="page tweaks-page"><div class="tweaks-container"></div></section>
+            <section id="tweaks_ext" class="page tweaks-page"><div class="tweaks-container"></div></section>
+
+            <button id="bulk-apply-btn" class="bulk-apply-btn glass" onclick="applySelectedTweaks()" style="display: none;">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Aplicar Optimizaciones (<span id="bulk-count">0</span>)
+            </button>
+
+            <!-- Game profiles -->
+            <section id="games" class="page">
+                <div class="games-header">
+                    <h2><i class="fa-solid fa-gamepad neon-text"></i> Perfiles de Juego</h2>
+                    <p>Juegos detectados en el sistema. Optimiza tu PC específicamente para cada título.</p>
+                </div>
+
+                <div class="game-actions-row">
+                    <div class="action-card glass">
+                        <div class="action-card-icon booster"><i class="fa-solid fa-bolt-lightning"></i></div>
+                        <div class="action-card-info">
+                            <strong>Game Booster</strong>
+                            <span>Cierra apps de fondo (Discord, Spotify, navegadores) y prioriza tu red antes de jugar.</span>
+                        </div>
+                        <button class="btn-primary" onclick="runTask('enable_game_booster')"><i class="fa-solid fa-power-off"></i> Activar</button>
+                    </div>
+
+                    <div class="action-card glass">
+                        <div class="action-card-icon bench"><i class="fa-solid fa-gauge-simple-high"></i></div>
+                        <div class="action-card-info">
+                            <strong>Benchmark Naury</strong>
+                            <span id="benchmark-result">Mide CPU (1 y multi-núcleo) y velocidad real de disco. Nada de números inflados.</span>
+                        </div>
+                        <button class="btn-primary" id="benchmark-btn" onclick="runBenchmark()"><i class="fa-solid fa-play"></i> Ejecutar</button>
+                    </div>
+                </div>
+
+                <div id="benchmark-details" class="benchmark-details" style="display:none;"></div>
+                <div class="hw-module module-wide temp-module" style="margin-bottom: 24px;">
+                    <div class="temp-module-header">
+                        <span class="hw-label"><i class="fa-solid fa-chart-line"></i> Historial de Benchmark</span>
+                        <span class="hw-sub">Últimas ejecuciones</span>
+                    </div>
+                    <div class="temp-chart-wrap">
+                        <canvas id="benchHistoryChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="games-subheading">Juegos Detectados</div>
+                <div id="games-grid" class="games-grid">
+                    <div class="grid-placeholder">
+                        <div class="loader-ring lg"></div>
+                        <p>Escaneando discos en busca de juegos instalados...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Debloater -->
+            <section id="debloater" class="page">
+                <div class="debloat-toolbar">
+                    <div class="debloat-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="debloat-search-input" placeholder="Buscar aplicaciones...">
+                    </div>
+                    <div class="debloat-controls">
+                        <div class="debloat-toggle">
+                            <button id="toggle-desktop" class="active">Desktop apps</button>
+                            <button id="toggle-store">Store apps</button>
+                        </div>
+                        <button class="debloat-btn-uninstall" id="debloat-uninstall-btn" disabled>Uninstall (0)</button>
+                        <button class="debloat-btn-auto" onclick="runAutoDebloat()">Auto Debloat</button>
+                    </div>
+                </div>
+
+                <div class="debloat-table-container">
+                    <table class="debloat-table">
+                        <thead>
+                            <tr>
+                                <th width="50"><input type="checkbox" id="debloat-select-all"></th>
+                                <th>Nombre</th>
+                                <th width="120">Tamaño</th>
+                                <th width="150">Instalado el</th>
+                            </tr>
+                        </thead>
+                        <tbody id="debloat-tbody">
+                            <tr><td colspan="4" style="text-align:center; padding:40px;"><div class="loader-ring sm"></div> Cargando aplicaciones...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Fixes -->
+            <section id="fixes" class="page">
+                <div class="games-header">
+                    <h2><i class="fa-solid fa-wrench neon-text"></i> Solucionadores Automáticos</h2>
+                    <p>Arreglos de un clic para los problemas más comunes de Windows.</p>
+                </div>
+                <div class="fix-grid">
+                    <div class="fix-card glass" onclick="runTask('fix_network')">
+                        <div class="fix-card-icon" style="--icon-color: var(--cyan);"><i class="fa-solid fa-wifi"></i></div>
+                        <strong>Reparar Red</strong>
+                        <span>Reinicia Winsock, TCP/IP y renueva la IP local.</span>
+                    </div>
+                    <div class="fix-card glass" onclick="runTask('fix_windows')">
+                        <div class="fix-card-icon" style="--icon-color: var(--primary-2);"><i class="fa-solid fa-shield-heart"></i></div>
+                        <strong>Reparar Windows</strong>
+                        <span>SFC + DISM para corregir archivos de sistema dañados.</span>
+                    </div>
+                    <div class="fix-card glass" onclick="runTask('fix_bsod')">
+                        <div class="fix-card-icon" style="--icon-color: var(--danger);"><i class="fa-solid fa-skull-crossbones"></i></div>
+                        <strong>Prevenir BSOD</strong>
+                        <span>Desactiva el auto-reinicio y revisa volcados de errores.</span>
+                    </div>
+                    <div class="fix-card glass" onclick="runTask('fix_audio')">
+                        <div class="fix-card-icon" style="--icon-color: var(--warning);"><i class="fa-solid fa-volume-high"></i></div>
+                        <strong>Reparar Audio</strong>
+                        <span>Reinicia los servicios de audio de Windows.</span>
+                    </div>
+                    <div class="fix-card glass" onclick="runTask('fix_explorer')">
+                        <div class="fix-card-icon" style="--icon-color: var(--success);"><i class="fa-solid fa-desktop"></i></div>
+                        <strong>Reiniciar Explorer</strong>
+                        <span>Arregla la barra de tareas o iconos congelados.</span>
+                    </div>
+                    <div class="fix-card glass" onclick="runTask('fix_printer')">
+                        <div class="fix-card-icon" style="--icon-color: var(--cyan);"><i class="fa-solid fa-print"></i></div>
+                        <strong>Cola de Impresión</strong>
+                        <span>Reinicia el spooler y borra trabajos atascados.</span>
+                    </div>
+                    <div class="fix-card glass" onclick="runTask('clear_icon_cache')">
+                        <div class="fix-card-icon" style="--icon-color: var(--primary-2);"><i class="fa-solid fa-images"></i></div>
+                        <strong>Caché de Iconos</strong>
+                        <span>Reconstruye iconos rotos o en blanco.</span>
+                    </div>
+                    <div class="fix-card glass" onclick="runTask('resync_clock')">
+                        <div class="fix-card-icon" style="--icon-color: var(--success);"><i class="fa-solid fa-clock"></i></div>
+                        <strong>Resincronizar Reloj</strong>
+                        <span>Fuerza sincronización NTP contra errores de login/certificados.</span>
+                    </div>
+                    <div class="fix-card glass" onclick="runTask('fix_windows_store')">
+                        <div class="fix-card-icon" style="--icon-color: var(--warning);"><i class="fa-brands fa-microsoft"></i></div>
+                        <strong>Reset Store</strong>
+                        <span>Arregla apps atascadas en "Instalando" o Store caída.</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Cleaner -->
+            <section id="cleaner" class="page">
+                <div class="cleaner-section-label">MANTENIMIENTO DEL SISTEMA</div>
+                <div class="cleaner-grid">
+                    <div class="clean-card glass-card" onclick="runTask('clean_system')">
+                        <div class="clean-icon"><i class="fa-solid fa-hard-drive"></i></div>
+                        <div class="clean-title">Sistema</div>
+                        <div class="clean-desc">Archivos temporales</div>
+                    </div>
+                    <div class="clean-card glass-card" onclick="runTask('clean_browsers')">
+                        <div class="clean-icon" style="color: var(--cyan); text-shadow: 0 0 12px rgba(79, 209, 232, 0.4);"><i class="fa-brands fa-chrome"></i></div>
+                        <div class="clean-title">Navegadores</div>
+                        <div class="clean-desc">Caché e historial</div>
+                    </div>
+                    <div class="clean-card glass-card" onclick="runTask('clean_updates')">
+                        <div class="clean-icon" style="color: var(--success); text-shadow: 0 0 12px rgba(62, 207, 142, 0.4);"><i class="fa-solid fa-rotate"></i></div>
+                        <div class="clean-title">Windows Update</div>
+                        <div class="clean-desc">Caché de descargas</div>
+                    </div>
+                    <div class="clean-card glass-card" onclick="runTask('flush_dns')">
+                        <div class="clean-icon" style="color: var(--warning); text-shadow: 0 0 12px rgba(255, 175, 77, 0.4);"><i class="fa-solid fa-network-wired"></i></div>
+                        <div class="clean-title">Caché DNS</div>
+                        <div class="clean-desc">Mejora latencia red</div>
+                    </div>
+                    <div class="clean-card glass-card" onclick="runTask('clean_ram_standby')">
+                        <div class="clean-icon" style="color: var(--primary-2); text-shadow: 0 0 12px rgba(108, 107, 255, 0.4);"><i class="fa-solid fa-memory"></i></div>
+                        <div class="clean-title">Liberar RAM</div>
+                        <div class="clean-desc">Vacia Standby List</div>
+                    </div>
+                    <div class="clean-card glass-card" onclick="runTask('optimize_disks')">
+                        <div class="clean-icon" style="color: var(--success); text-shadow: 0 0 12px rgba(62, 207, 142, 0.4);"><i class="fa-solid fa-gauge-simple-high"></i></div>
+                        <div class="clean-title">TRIM / Defrag</div>
+                        <div class="clean-desc">Optimiza SSD y HDD</div>
+                    </div>
+                </div>
+                <div class="cleaner-note"><i class="fa-solid fa-circle-info"></i> Selecciona un módulo para limpiarlo de forma individual, o utiliza la limpieza profunda abajo para ejecutar todo a la vez.</div>
+
+                <div class="cleaner-danger-panel glass" onclick="runDestructiveTask('clean_all', 'Esto ejecutará todas las limpiezas de golpe (caché de sistema, navegadores, updates, DNS, RAM).\n\nNo borra documentos personales. Para mejores resultados, cierra el navegador antes.\n\n¿Continuar?')">
+                    <div class="danger-icon" style="color: var(--warning);"><i class="fa-solid fa-broom"></i></div>
+                    <div class="danger-info">
+                        <strong style="color: var(--warning);">Limpieza Profunda</strong>
+                        <span>Ejecuta limpieza de sistema, navegadores y optimización en una sola pasada. Úsalo para liberar máximo espacio y mejorar rendimiento.</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right danger-arrow"></i>
+                </div>
+            </section>
+
+            <!-- Restore point -->
+            <section id="restore" class="page">
+                <div class="restore-layout">
+                    <div class="restore-panel glass">
+                        <div class="restore-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                        <h2>Punto de Restauración</h2>
+                        <p>Crea una copia de seguridad del estado actual de Windows antes de aplicar cambios profundos. Si algo sale mal, podrás volver atrás en segundos.</p>
+                        <button class="btn-primary restore-btn" onclick="runTask('create_restore_point')">
+                            <i class="fa-solid fa-plus"></i> Crear Punto de Seguridad Ahora
+                        </button>
+                        <div class="restore-note"><i class="fa-solid fa-circle-info"></i> Recomendado antes de activar el Modo Extremo.</div>
+
+                        <div class="restore-steps">
+                            <div class="restore-step">
+                                <span class="step-num">1</span>
+                                <div><strong>Analiza</strong><span>Revisa los archivos de sistema protegidos.</span></div>
+                            </div>
+                            <div class="restore-step">
+                                <span class="step-num">2</span>
+                                <div><strong>Snapshot</strong><span>Guarda el estado actual del registro y drivers.</span></div>
+                            </div>
+                            <div class="restore-step">
+                                <span class="step-num">3</span>
+                                <div><strong>Verifica</strong><span>Confirma que el punto quedó disponible en Windows.</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="restore-history glass">
+                        <div class="restore-history-header">
+                            <span><i class="fa-solid fa-list-check"></i> Puntos Existentes</span>
+                            <button class="restore-refresh-btn" onclick="loadRestorePoints()" title="Actualizar"><i class="fa-solid fa-rotate"></i></button>
+                        </div>
+                        <div id="restore-points-list" class="restore-points-list">
+                            <div class="restore-points-loading"><div class="loader-ring lg"></div> Consultando el sistema...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- Startup Manager -->
+            <section id="startup" class="page">
+                <div class="games-header">
+                    <h2><i class="fa-solid fa-power-off neon-text"></i> Gestor de Arranque</h2>
+                    <p>Esto es lo que más afecta al tiempo de encendido real. Desactiva lo que no necesites nada más iniciar sesión — no se desinstala nada, solo deja de arrancar solo.</p>
+                </div>
+                <div class="debloat-table-container">
+                    <table class="debloat-table">
+                        <thead>
+                            <tr>
+                                <th>Aplicación</th>
+                                <th width="140">Ubicación</th>
+                                <th width="120">Impacto</th>
+                                <th width="90">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="startup-tbody">
+                            <tr><td colspan="4" style="text-align:center; padding:40px;"><div class="loader-ring sm"></div> Leyendo entradas de arranque...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Disco & Archivos -->
+            <section id="diskspace" class="page">
+                <div class="games-header">
+                    <h2><i class="fa-solid fa-chart-pie neon-text"></i> Disco &amp; Archivos</h2>
+                    <p>Encuentra qué está ocupando espacio de verdad, en vez de solo vaciar carpetas temp de tamaño fijo.</p>
+                </div>
+
+                <div class="game-actions-row">
+                    <div class="action-card glass">
+                        <div class="action-card-icon booster"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
+                        <div class="action-card-info">
+                            <strong>Analizador de Espacio (C:)</strong>
+                            <span>Escanea la raíz del disco y ordena carpetas/archivos por tamaño real.</span>
+                        </div>
+                        <button class="btn-primary" onclick="runDiskAnalysis()"><i class="fa-solid fa-play"></i> Analizar</button>
+                    </div>
+                    <div class="action-card glass">
+                        <div class="action-card-icon bench"><i class="fa-solid fa-copy"></i></div>
+                        <div class="action-card-info">
+                            <strong>Buscador de Duplicados</strong>
+                            <span id="dup-summary">Busca archivos duplicados en tu carpeta de Descargas.</span>
+                        </div>
+                        <button class="btn-primary" onclick="runDuplicateFinder()"><i class="fa-solid fa-play"></i> Buscar</button>
+                    </div>
+                </div>
+
+                <div class="games-subheading">Mayor consumo de espacio</div>
+                <div id="disk-analysis-list" class="disk-analysis-list">
+                    <div class="grid-placeholder"><i class="fa-solid fa-chart-pie"></i><p>Pulsa "Analizar" para ver qué ocupa espacio en tu disco C:.</p></div>
+                </div>
+
+                <div class="games-subheading">Duplicados encontrados</div>
+                <div id="dup-results-list" class="dup-results-list">
+                    <div class="grid-placeholder"><i class="fa-solid fa-copy"></i><p>Pulsa "Buscar" para escanear duplicados en Descargas.</p></div>
+                </div>
+            </section>
+
+            <!-- Diagnóstico / Reparación -->
+            <section id="repair" class="page">
+                <div class="games-header">
+                    <h2><i class="fa-solid fa-stethoscope neon-text"></i> Diagnóstico Profundo</h2>
+                    <p>Reparaciones reales de Windows, salud de batería y tareas ocultas que se lanzan solas al iniciar sesión.</p>
+                </div>
+
+                <div class="restore-layout">
+                    <div class="restore-panel glass">
+                        <div class="restore-icon"><i class="fa-solid fa-toolbox"></i></div>
+                        <h2>Reparación Profunda (DISM + SFC)</h2>
+                        <p>Repara componentes de Windows corruptos y verifica archivos protegidos del sistema. Es lo que realmente arregla un "PC roto/lento", no un tweak de registro.</p>
+                        <button class="btn-primary restore-btn" id="repair-btn" onclick="startDeepRepair()">
+                            <i class="fa-solid fa-play"></i> Iniciar Reparación
+                        </button>
+                        <div id="repair-progress-wrap" style="display:none; margin-top:16px;">
+                            <div class="modal-progress-bar"><div class="modal-progress-fill" id="repair-progress-fill"></div></div>
+                            <div class="restore-note" id="repair-step-text" style="margin-top:8px;"></div>
+                        </div>
+                    </div>
+
+                    <div class="restore-history glass">
+                        <div class="restore-history-header">
+                            <span><i class="fa-solid fa-car-battery"></i> Salud de Batería</span>
+                            <button class="restore-refresh-btn" onclick="loadBatteryReport()" title="Generar informe"><i class="fa-solid fa-rotate"></i></button>
+                        </div>
+                        <div id="battery-report-box" class="restore-points-list">
+                            <div class="restore-points-empty"><i class="fa-solid fa-circle-info"></i><span>Pulsa el icono para generar el informe (solo portátiles).</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="games-subheading">Tareas programadas de terceros que arrancan solas</div>
+                <div class="debloat-table-container">
+                    <table class="debloat-table">
+                        <thead>
+                            <tr><th>Tarea</th><th width="220">Ruta</th><th width="120">Estado</th></tr>
+                        </thead>
+                        <tbody id="tasks-tbody">
+                            <tr><td colspan="3" style="text-align:center; padding:40px;"><div class="loader-ring sm"></div> Consultando el Programador de Tareas...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Center notification modal -->
+    <div id="modal-overlay" class="modal-overlay" style="display: none;">
+        <div class="modal-card glass">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-microchip"></i> Naury Engine Processing</h3>
+                <button class="modal-close" id="modal-close-btn" style="display: none;" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="modal-tasks-container" class="modal-body">
+                <!-- Tareas inyectadas aquí -->
+            </div>
+            <div class="modal-progress-bar">
+                <div class="modal-progress-fill" id="modal-progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notifications -->
+    <div id="toast-container"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>

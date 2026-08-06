@@ -493,7 +493,7 @@ async function loadTweaks() {
         const bulkCountSpan = document.getElementById('bulk-count');
 
         function updateBulkButton() {
-            const checkedBoxes = document.querySelectorAll('.tweak-switch:checked');
+            const checkedBoxes = document.querySelectorAll('.tweak-switch:checked:not(:disabled)');
             if (checkedBoxes.length > 0) {
                 bulkCountSpan.innerText = checkedBoxes.length;
                 if (bulkApplyBtn.style.display === 'none') {
@@ -529,7 +529,7 @@ async function loadTweaks() {
 async function applySelectedTweaks() {
     if (!window.pywebview || !window.pywebview.api) return;
 
-    const checkboxes = Array.from(document.querySelectorAll('.tweak-switch:checked'));
+    const checkboxes = Array.from(document.querySelectorAll('.tweak-switch:checked:not(:disabled)'));
     if (checkboxes.length === 0) return;
 
     openModal();

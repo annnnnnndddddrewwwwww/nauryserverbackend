@@ -21,15 +21,24 @@ try:
 except ImportError:
     pass  # python-dotenv not installed, will use system env vars only
 
-def get_dir_size(path):
+def get_dir_size(path, end_time=None):
+    if end_time and time.time() > end_time:
+        return 0
     total = 0
     try:
         with os.scandir(path) as it:
             for entry in it:
-                if entry.is_file():
-                    total += entry.stat().st_size
-                elif entry.is_dir():
-                    total += get_dir_size(entry.path)
+                if end_time and time.time() > end_time:
+                    break
+                try:
+                    if entry.is_symlink():
+                        continue
+                    if entry.is_file():
+                        total += entry.stat(follow_symlinks=False).st_size
+                    elif entry.is_dir():
+                        total += get_dir_size(entry.path, end_time)
+                except:
+                    continue
     except:
         pass
     return total
@@ -123,7 +132,7 @@ def _safe_filename(value, max_len=64):
 # ==================================================================
 # AUTO-UPDATER CONFIGURATION
 # ==================================================================
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.0.1"
 GITHUB_REPO = "annnnnnndddddrewwwwww/nauryutilityoptimization"
 EXE_NAME = "Naury.exe" # El nombre de tu ejecutable final
 
@@ -154,7 +163,16 @@ class Api:
                             break
                             
                     if download_url:
-                        return {"status": "update_available", "version": latest_version, "url": download_url, "notes": data.get('body', '')}
+                        notes = data.get('body', '')
+                        try:
+                            # Intentar obtener las notas del Admin Panel (Supabase)
+                            sup_res = AntiTamper()._sup_request("GET", "update_notes?select=*&order=id.desc&limit=1")
+                            if sup_res and len(sup_res) > 0:
+                                notes = sup_res[0].get("notes", notes)
+                        except:
+                            pass
+                            
+                        return {"status": "update_available", "version": latest_version, "url": download_url, "notes": notes}
             
             return {"status": "up_to_date", "version": APP_VERSION}
         except Exception as e:
@@ -174,7 +192,12 @@ class Api:
 
             # 2. Create the batch script to swap the files
             bat_content = f"""@echo off
-timeout /t 2 /nobreak > NUL
+:wait
+tasklist | find /i "{EXE_NAME}" > NUL
+if %ERRORLEVEL% == 0 (
+    timeout /t 1 /nobreak > NUL
+    goto wait
+)
 del "{current_exe}"
 move /y "{new_exe_path}" "{current_exe}"
 start "" "{current_exe}"
@@ -334,11 +357,17 @@ del "%~f0"
         try:
             target = path or (os.environ.get('SystemDrive', 'C:') + '\\')
             entries = []
+            
+            # Limitar el escaneo total a 12 segundos para evitar que parezca colgado
+            end_time = time.time() + 12.0
+            
             with os.scandir(target) as it:
                 for entry in it:
+                    if time.time() > end_time:
+                        break
                     try:
                         is_dir = entry.is_dir(follow_symlinks=False)
-                        size = get_dir_size(entry.path) if is_dir else entry.stat().st_size
+                        size = get_dir_size(entry.path, end_time) if is_dir else entry.stat(follow_symlinks=False).st_size
                         entries.append({"name": entry.name, "path": entry.path, "size": size, "is_dir": is_dir})
                     except Exception:
                         continue
@@ -697,11 +726,6 @@ del "%~f0"
 
             action = "Activado" if state else "Desactivado"
             if not success:
-                # Enviar reporte a Discord silenciosamente
-                try:
-                    AntiTamper()._notify_discord(f"Fallo al aplicar Tweak: {tweak['name']} ({opt_id}) - Comando fallido")
-                except:
-                    pass
                 return {
                     "status": "error",
                     "message": f"Error al aplicar {tweak['name']}. Comprueba permisos."
@@ -713,11 +737,6 @@ del "%~f0"
                 "delta_pct": delta_pct
             }
         except Exception as e:
-            # Enviar reporte a Discord silenciosamente
-            try:
-                AntiTamper()._notify_discord(f"Fallo critico al aplicar Tweak {opt_id}: {str(e)}")
-            except:
-                pass
             return {"status": "error", "message": f"Fallo interno: {str(e)}"}
 
     # ══════════════════════════════════════════════

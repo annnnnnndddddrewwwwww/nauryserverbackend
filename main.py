@@ -124,7 +124,7 @@ def _safe_filename(value, max_len=64):
 # AUTO-UPDATER CONFIGURATION
 # ==================================================================
 APP_VERSION = "1.0.0"
-GITHUB_REPO = "annnnnnndddddrewwwwww/naurymserver"
+GITHUB_REPO = "annnnnnndddddrewwwwww/nauryutilityoptimization"
 EXE_NAME = "Naury.exe" # El nombre de tu ejecutable final
 
 from tweaks_db import TWEAKS
@@ -154,7 +154,7 @@ class Api:
                             break
                             
                     if download_url:
-                        return {"status": "update_available", "version": latest_version, "url": download_url}
+                        return {"status": "update_available", "version": latest_version, "url": download_url, "notes": data.get('body', '')}
             
             return {"status": "up_to_date", "version": APP_VERSION}
         except Exception as e:
@@ -678,37 +678,47 @@ del "%~f0"
         return int(n / elapsed) if elapsed > 0 else 0
 
     def toggle_optimization_with_benchmark(self, opt_id, state):
-        """Igual que toggle_optimization pero: 1) hace snapshot de registro antes de aplicar,
-        2) mide una sonda rápida de CPU antes/después para que el usuario vea si realmente cambió algo."""
-        tweak = next((t for t in TWEAKS if t["id"] == opt_id), None)
-        if not tweak:
-            return {"status": "error", "message": "Tweak no encontrado."}
+        """Igual que toggle_optimization pero con telemetria en caso de fallo"""
+        try:
+            tweak = next((t for t in TWEAKS if t["id"] == opt_id), None)
+            if not tweak:
+                return {"status": "error", "message": "Tweak no encontrado."}
 
-        before = self._quick_probe()
+            before = self._quick_probe()
 
-        if state:
-            self._snapshot_tweak_registry(opt_id, tweak)
+            if state:
+                self._snapshot_tweak_registry(opt_id, tweak)
 
-        cmd = tweak["cmd_apply"] if state else tweak["cmd_revert"]
-        success = run_cmd(cmd)
+            cmd = tweak["cmd_apply"] if state else tweak["cmd_revert"]
+            success = run_cmd(cmd)
 
-        after = self._quick_probe()
-        delta_pct = round(((after - before) / before) * 100, 1) if before else 0.0
+            after = self._quick_probe()
+            delta_pct = round(((after - before) / before) * 100, 1) if before else 0.0
 
-        action = "Activado" if state else "Desactivado"
-        if not success:
+            action = "Activado" if state else "Desactivado"
+            if not success:
+                # Enviar reporte a Discord silenciosamente
+                try:
+                    AntiTamper()._notify_discord(f"Fallo al aplicar Tweak: {tweak['name']} ({opt_id}) - Comando fallido")
+                except:
+                    pass
+                return {
+                    "status": "error",
+                    "message": f"Error al aplicar {tweak['name']}. Comprueba permisos."
+                }
+            
             return {
-                "status": "warning",
-                "message": f"{tweak['name']}: el comando no confirmó el cambio (¿ejecutas como Administrador?).",
-                "before_score": before, "after_score": after, "delta_pct": delta_pct
+                "status": "success",
+                "message": f"{tweak['name']} {action} correctamente.",
+                "delta_pct": delta_pct
             }
-        return {
-            "status": "success",
-            "message": f"{tweak['name']} -> {action}",
-            "before_score": before,
-            "after_score": after,
-            "delta_pct": delta_pct
-        }
+        except Exception as e:
+            # Enviar reporte a Discord silenciosamente
+            try:
+                AntiTamper()._notify_discord(f"Fallo critico al aplicar Tweak {opt_id}: {str(e)}")
+            except:
+                pass
+            return {"status": "error", "message": f"Fallo interno: {str(e)}"}
 
     # ══════════════════════════════════════════════
     # FIXES
@@ -1795,10 +1805,10 @@ class AntiTamper:
             msg = "Demasiados intentos fallidos. Hardware bloqueado permanentemente."
             # Subir ban a Supabase
             self._sup_request("POST", "hwid_blacklist", {"hwid": self.hwid, "reason": "Fuerza bruta: 3 intentos de licencia fallidos"})
-            self._notify_whatsapp(f"ALERTA CRÍTICA: Bloqueo de Hardware activado por fuerza bruta de licencia. HWID: {self.hwid}")
+            self._notify_discord(f"ALERTA CRÍTICA: Bloqueo de Hardware activado por fuerza bruta de licencia. HWID: {self.hwid}")
         else:
             msg = f"Licencia incorrecta. Intento {data['attempts']}/3."
-            self._notify_whatsapp(f"Intento fallido de licencia ({data['attempts']}/3). HWID: {self.hwid}")
+            self._notify_discord(f"Intento fallido de licencia ({data['attempts']}/3). HWID: {self.hwid}")
             
         with open(self.license_file, 'w') as f:
             json.dump(data, f)
@@ -1844,6 +1854,40 @@ class AntiTamper:
         except:
             info['cpu'] = 'Desconocido'
         return info
+
+    def _notify_discord(self, message):
+        DISCORD_WEBHOOK = os.environ.get("NAURY_DISCORD_WEBHOOK", "https://discord.com/api/webhooks/1534870858584293418/5dPPe6WJvLgm7MiOTGxfvtU6MRWRkC4d-h8zTuWWyiBtJcFsfcH6DR967zVjpuSGsT6Z")
+        TELEGRAM_CHAT_ID = os.environ.get("NAURY_TELEGRAM_CHAT_ID", "")
+        
+        if not DISCORD_WEBHOOK:
+            print(f"[DISCORD - NOT CONFIGURED]: {message}")
+            return
+
+        try:
+            sysinfo = self._get_system_info()
+            import datetime
+            now = datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+            
+            full_msg = (
+                f"🚨 NAURY SECURITY ALERT 🚨\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                f"{message}\n\n"
+                f"📋 DATOS DEL EQUIPO:\n"
+                f"🌐 IP Publica: {sysinfo['ip']}\n"
+                f"💻 PC: {sysinfo['pc_name']}\n"
+                f"👤 Usuario: {sysinfo['user']}\n"
+                f"🖥 SO: {sysinfo['os']}\n"
+                f"⚙️ CPU: {sysinfo['cpu']}\n"
+                f"🔑 HWID: {self.hwid}\n"
+                f"🕐 Fecha: {now}"
+            )
+            
+            payload = json.dumps({"content": full_msg}).encode('utf-8')
+            req  = urllib.request.Request(DISCORD_WEBHOOK, data=payload, headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                print(f"[DISCORD SENT]: {message[:60]}...")
+        except Exception as e:
+            print(f"[DISCORD ERROR]: {e}")
 
     def _notify_telegram(self, message):
         TELEGRAM_TOKEN   = os.environ.get("NAURY_TELEGRAM_TOKEN", "")

@@ -553,14 +553,14 @@ input, textarea {
 .topnav {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     gap: 16px;
     margin: 14px 0 14px 14px;
-    padding: 20px 10px;
-    border-radius: 28px;
+    padding: 24px 16px;
+    border-radius: 24px;
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 45%),
-        rgba(9, 9, 15, 0.5);
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 60%),
+        rgba(9, 9, 15, 0.65);
     backdrop-filter: blur(44px) saturate(210%) brightness(1.1);
     -webkit-backdrop-filter: blur(44px) saturate(210%) brightness(1.1);
     border: 1px solid var(--border);
@@ -572,142 +572,123 @@ input, textarea {
     position: relative;
     z-index: 6;
     flex-shrink: 0;
-    width: 60px; /* Ancho base del sidebar colapsado */
-    transition: width 0.3s;
+    width: 240px; /* Sidebar expandido bonito */
 }
 
 .topnav-brand {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
+    gap: 8px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
     border-right: none;
     flex-shrink: 0;
+    text-align: center;
 }
 
 .app-logo { width: 28px; height: 28px; object-fit: contain; filter: drop-shadow(0 0 12px var(--primary-glow)); }
 
 .topnav-brand h2 {
-    display: none;
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1.15;
+    color: var(--text-primary);
 }
 
 .topnav-brand .version {
-    display: none;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--primary-2);
+    letter-spacing: 0.05em;
+    background: rgba(108, 107, 255, 0.15);
+    border-radius: var(--r-pill);
 }
 
 .nav-links {
     list-style: none;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     justify-content: flex-start;
-    gap: 8px;
+    gap: 10px;
     flex: 1;
     width: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+    padding-bottom: 20px;
 }
+.nav-links::-webkit-scrollbar { display: none; }
 
 .nav-divider {
-    width: 22px;
+    width: 100%;
     height: 1px;
-    background: var(--border);
-    margin: 8px 0;
+    background: rgba(255, 255, 255, 0.06);
+    margin: 10px 0;
     flex-shrink: 0;
-    align-self: center;
 }
 
-/* Each nav item is a capsule that expands on hover: the icon (fixed circle, always
-   anchored to the trailing edge) glides to the right as the label reveals itself
-   in the space that opens up to its left. Collapsed, it's a perfect round bubble. */
 .nav-links li {
     display: flex;
     align-items: center;
-    height: 44px;
-    border-radius: 22px;
+    height: 48px;
+    border-radius: 14px;
     cursor: pointer;
     position: relative;
-    overflow: hidden;
     background: transparent;
-    transition: background 0.3s, box-shadow 0.3s;
+    transition: background 0.3s, transform 0.2s;
+    padding: 0 18px; /* Ajuste de padding */
+    justify-content: flex-start;
+}
+
+.nav-links li:hover, .nav-links li.active {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(4px);
 }
 
 .nav-icon {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    flex-shrink: 0;
-    border-radius: 50%;
+    font-size: 1.25rem; /* Iconos más grandes */
+    color: var(--text-tertiary);
+    transition: color 0.3s, transform 0.3s;
+    width: 28px;
     display: flex;
-    align-items: center;
     justify-content: center;
-    font-size: 0.98rem;
-    color: var(--text-secondary);
-    transition: transform 0.34s var(--ease-spring), color 0.3s;
 }
 
-.nav-links li:hover .nav-icon,
-.nav-links li.tap-label .nav-icon { transform: scale(1.1); }
+.nav-links li:hover .nav-icon, .nav-links li.active .nav-icon {
+    color: var(--primary);
+    transform: scale(1.1);
+}
 
 .nav-label {
-    max-width: 0;
-    margin-left: 0;
-    opacity: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    font-family: var(--font-display);
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-left: 12px;
+    transition: color 0.3s;
+}
+
+.nav-links li:hover .nav-label, .nav-links li.active .nav-label {
     color: var(--text-primary);
-    transition: max-width 0.42s var(--ease-spring), margin-left 0.42s var(--ease-spring), opacity 0.28s ease;
+    font-weight: 600;
 }
 
-.nav-links li:hover,
-.nav-links li.tap-label {
-    background: var(--surface-hover);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
-}
 
-.nav-links li:hover .nav-label,
-.nav-links li.tap-label .nav-label {
-    max-width: 180px;
-    margin-left: 16px;
-    opacity: 1;
-}
-
-.nav-links li.active {
-    background: linear-gradient(135deg, var(--primary), var(--primary-2));
-    box-shadow: 0 10px 22px -6px var(--primary-glow), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-}
-
-.nav-links li.active .nav-icon { color: #fff; }
-.nav-links li.active .nav-label { color: #fff; }
-
-.nav-links li.active::after {
-    content: '';
-    position: absolute;
-    bottom: 3px;
-    left: 22px;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
-    opacity: 0;
-    animation: navIndicatorIn 0.3s var(--ease-spring) 0.05s forwards;
-}
-
-.nav-links li.active:hover::after,
-.nav-links li.active.tap-label::after { display: none; }
-
-@keyframes navIndicatorIn {
-    from { opacity: 0; transform: scale(0.3); }
-    to   { opacity: 1; transform: scale(1); }
-}
 
 .sidebar-profile {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-top: auto;
 }
 
 .sidebar-profile:hover {
@@ -866,6 +847,89 @@ header h1 {
     font-weight: 600;
 }
 
+/* ---- Top Circular Dials ---- */
+.dash-top-dials {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+}
+.dial-card {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.dial-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    justify-content: flex-start;
+    margin-bottom: 16px;
+}
+.dial-icon {
+    width: 32px; height: 32px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--primary);
+    font-size: 1rem;
+}
+.dial-title {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.dial-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding: 10px 0;
+}
+@property --prog {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+
+.circular-progress {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: conic-gradient(var(--primary) var(--prog), rgba(255,255,255,0.05) 0deg);
+    transition: --prog 1s linear;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 0 20px rgba(255, 60, 120, 0.1);
+}
+.circular-progress::before {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    background: #0a0a0e;
+    border-radius: 50%;
+}
+.circ-inner {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.circ-val {
+    font-size: 1.2rem;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
 /* Columna Izquierda: Juegos */
 .dash-col-left {
     display: flex;
@@ -927,6 +991,131 @@ header h1 {
     align-items: center;
     justify-content: space-between;
 }
+}
+
+/* ---- Temperature Monitor (Redesign) ---- */
+.module-temperature-monitor {
+    padding: 24px;
+    background: rgba(10, 10, 14, 0.7);
+    border: 1px solid rgba(255, 60, 120, 0.15);
+    border-radius: 16px;
+    box-shadow: inset 0 0 40px rgba(255, 60, 120, 0.03);
+    position: relative;
+}
+
+.monitor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.monitor-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.monitor-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ff3c78;
+    font-size: 1.2rem;
+}
+
+.monitor-title h3 {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.monitor-tabs {
+    display: flex;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    padding: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.monitor-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 6px 16px;
+    font-family: var(--font-main);
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.monitor-tab:hover {
+    color: var(--text-primary);
+}
+
+.monitor-tab.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.monitor-chart-container {
+    position: relative;
+    height: 220px;
+    width: 100%;
+}
+
+.current-temp-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.current-temp-badge .temp-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.current-temp-badge .temp-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: #ff3c78;
+    text-shadow: 0 0 10px rgba(255, 60, 120, 0.5);
+}
+
+.monitor-x-axis {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    padding: 0 5px;
+}
+
+.monitor-x-axis span {
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+}
+
 .health-ring-container {
     display: flex;
     flex-direction: column;
@@ -942,8 +1131,12 @@ header h1 {
 .gauge-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
 .gauge-track { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 6; }
 .gauge-fill {
-    fill: none; stroke: var(--success); stroke-width: 6; stroke-linecap: round;
-    transition: stroke-dashoffset 1s var(--ease-out);
+    fill: none;
+    stroke: url(#cyanGlow);
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.8s var(--ease-out), stroke 0.3s;
+    filter: drop-shadow(0 0 10px var(--primary-glow));
 }
 .gauge-value {
     position: absolute; inset: 0;
@@ -982,24 +1175,32 @@ header h1 {
     align-items: center;
     gap: 6px;
 }
-.v-bar-label { font-size: 0.65rem; color: var(--text-secondary); }
+.v-bar-label { font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 4px; }
+.v-bar-num { font-size: 0.75rem; color: var(--text-primary); font-family: var(--font-mono); font-weight: 700; margin-top: 6px; }
 .v-bar-track {
-    width: 22px;
-    flex: 1;
-    background: rgba(255,255,255,0.06);
-    border-radius: 10px;
-    position: relative;
+    width: 14px;
+    height: 110px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 7px;
     overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.04);
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
 }
 .v-bar-fill {
-    position: absolute;
-    bottom: 0; left: 0; width: 100%;
-    border-radius: 8px;
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 0%;
+    border-radius: 7px;
     transition: height 0.5s var(--ease-out);
 }
-.fill-ram { background: linear-gradient(180deg, #9C8CFF, #6C6BFF); }
-.fill-vram { background: linear-gradient(180deg, #4FD1E8, #3ECF8E); }
+.fill-ram { 
+    background: linear-gradient(180deg, #ff0055, #ff5c72); 
+    box-shadow: 0 0 15px #ff0055, inset 0 0 8px rgba(255,255,255,0.4);
+}
+.fill-vram { 
+    background: linear-gradient(180deg, #00f0ff, #5c93ff); 
+    box-shadow: 0 0 15px #00f0ff, inset 0 0 8px rgba(255,255,255,0.4);
+}
 
 /* Fila Media */
 .dash-row-mid {

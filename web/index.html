@@ -98,26 +98,28 @@
             </div>
 
             <ul class="nav-links">
-                <li class="active" data-target="dashboard"><span class="nav-label">Dashboard</span><span class="nav-icon"><i class="fa-solid fa-gauge-high"></i></span></li>
+                <li class="active" data-target="dashboard"><span class="nav-icon"><i class="fa-solid fa-gauge-high"></i></span><span class="nav-label">Dashboard</span></li>
 
                 <div class="nav-divider" aria-hidden="true"></div>
-                <li data-target="tweaks_fps"><span class="nav-label">FPS &amp; Ping</span><span class="nav-icon"><i class="fa-solid fa-crosshairs"></i></span></li>
-                <li data-target="tweaks_perf"><span class="nav-label">Rendimiento</span><span class="nav-icon"><i class="fa-solid fa-rocket"></i></span></li>
-                <li data-target="tweaks_priv"><span class="nav-label">Privacidad</span><span class="nav-icon"><i class="fa-solid fa-user-shield"></i></span></li>
-                <li data-target="tweaks_srv"><span class="nav-label">Servicios</span><span class="nav-icon"><i class="fa-solid fa-server"></i></span></li>
-                <li data-target="tweaks_ext"><span class="nav-label">Modo Extremo</span><span class="nav-icon"><i class="fa-solid fa-skull"></i></span></li>
+                <li data-target="tweaks_fps"><span class="nav-icon"><i class="fa-solid fa-crosshairs"></i></span><span class="nav-label">FPS &amp; Ping</span></li>
+                <li data-target="tweaks_perf"><span class="nav-icon"><i class="fa-solid fa-rocket"></i></span><span class="nav-label">Rendimiento</span></li>
+                <li data-target="tweaks_priv"><span class="nav-icon"><i class="fa-solid fa-user-shield"></i></span><span class="nav-label">Privacidad</span></li>
+                <li data-target="tweaks_srv"><span class="nav-icon"><i class="fa-solid fa-server"></i></span><span class="nav-label">Servicios</span></li>
+                <li data-target="tweaks_ext"><span class="nav-icon"><i class="fa-solid fa-skull"></i></span><span class="nav-label">Modo Extremo</span></li>
+                <div class="nav-divider" aria-hidden="true"></div>
+                <li data-target="tweaks_nvidia"><span class="nav-icon"><i class="fa-solid fa-microchip" style="color:#76b900"></i></span><span class="nav-label">NVIDIA</span></li>
+                <li data-target="tweaks_msi"><span class="nav-icon"><i class="fa-solid fa-bolt" style="color:#ff3c78"></i></span><span class="nav-label">MSI Mode</span></li>
 
                 <div class="nav-divider" aria-hidden="true"></div>
-                <li data-target="debloater"><span class="nav-label">Debloater Avanzado</span><span class="nav-icon"><i class="fa-solid fa-trash-can-arrow-up"></i></span></li>
-                <li data-target="games"><span class="nav-label">Game Profiles</span><span class="nav-icon"><i class="fa-solid fa-gamepad"></i></span></li>
-                <li data-target="fixes"><span class="nav-label">Fixes</span><span class="nav-icon"><i class="fa-solid fa-wrench"></i></span></li>
-                <li data-target="cleaner"><span class="nav-label">Utilitarios</span><span class="nav-icon"><i class="fa-solid fa-broom"></i></span></li>
-                <li data-target="restore"><span class="nav-label">Restore Point</span><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span></li>
+                <li data-target="debloater"><span class="nav-icon"><i class="fa-solid fa-trash-can-arrow-up"></i></span><span class="nav-label">Debloater Avanzado</span></li>
+                <li data-target="fixes"><span class="nav-icon"><i class="fa-solid fa-wrench"></i></span><span class="nav-label">Fixes</span></li>
+                <li data-target="cleaner"><span class="nav-icon"><i class="fa-solid fa-broom"></i></span><span class="nav-label">Utilitarios</span></li>
+                <li data-target="restore"><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span><span class="nav-label">Restore Point</span></li>
 
                 <div class="nav-divider" aria-hidden="true"></div>
-                <li data-target="startup"><span class="nav-label">Arranque</span><span class="nav-icon"><i class="fa-solid fa-power-off"></i></span></li>
-                <li data-target="diskspace"><span class="nav-label">Disco &amp; Archivos</span><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span></li>
-                <li data-target="repair"><span class="nav-label">Diagnóstico</span><span class="nav-icon"><i class="fa-solid fa-stethoscope"></i></span></li>
+                <li data-target="startup"><span class="nav-icon"><i class="fa-solid fa-power-off"></i></span><span class="nav-label">Arranque</span></li>
+                <li data-target="diskspace"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span><span class="nav-label">Disco &amp; Archivos</span></li>
+                <li data-target="repair"><span class="nav-icon"><i class="fa-solid fa-stethoscope"></i></span><span class="nav-label">Diagnóstico</span></li>
             </ul>
 
             <div class="sidebar-profile">
@@ -156,127 +158,94 @@
                     <!-- Columna Derecha: Hardware & Rendimiento -->
                     <div class="dash-col-right">
                         
-                        <!-- Fila Superior: Performance & Health Overview -->
-                        <div class="glass-card module-health-overview">
-                            <h3 class="glass-title">Performance & Health Overview</h3>
-                            <div class="health-overview-content">
-                                
-                                <!-- Anillo de Salud -->
-                                <div class="health-ring-container">
-                                    <span class="health-label-top">System Health</span>
-                                    <div class="health-gauge">
-                                        <svg viewBox="0 0 120 120" class="gauge-ring">
-                                            <circle class="gauge-track" cx="60" cy="60" r="52"></circle>
-                                            <circle class="gauge-fill" id="health-gauge-fill" cx="60" cy="60" r="52" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"></circle>
-                                        </svg>
-                                        <div class="gauge-value">
-                                            <strong id="health-status-label" class="glow-text-green">ANALIZANDO</strong>
+                        <!-- Fila Superior: Top Circular Dials for CPU, GPU, RAM -->
+                        <div class="dash-top-dials" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
+                            <!-- CPU Dial -->
+                            <div class="glass-card dial-card">
+                                <div class="dial-header">
+                                    <div class="dial-icon"><i class="fa-solid fa-microchip"></i></div>
+                                    <span class="dial-title">CPU Usage</span>
+                                </div>
+                                <div class="dial-content">
+                                    <div class="circular-progress" id="cpu-circ-prog" style="--prog: 0%;">
+                                        <div class="circ-inner">
+                                            <span class="circ-val" id="cpu-circ-val">0%</span>
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <!-- Gráficos de CPU y GPU -->
-                                <div class="health-charts">
-                                    <div class="chart-box">
-                                        <span class="chart-label">CPU Usage</span>
-                                        <div class="chart-canvas-wrap">
-                                            <canvas id="cpuLineChart"></canvas>
-                                        </div>
-                                    </div>
-                                    <div class="chart-box">
-                                        <span class="chart-label">GPU Temperatura</span>
-                                        <div class="chart-canvas-wrap">
-                                            <canvas id="gpuLineChart"></canvas>
+                            </div>
+                            <!-- RAM Dial -->
+                            <div class="glass-card dial-card">
+                                <div class="dial-header">
+                                    <div class="dial-icon"><i class="fa-solid fa-memory"></i></div>
+                                    <span class="dial-title">RAM Usage</span>
+                                </div>
+                                <div class="dial-content">
+                                    <div class="circular-progress" id="ram-circ-prog" style="--prog: 0%;">
+                                        <div class="circ-inner">
+                                            <span class="circ-val" id="ram-circ-val">0%</span>
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <!-- Barras Verticales RAM/VRAM -->
-                                <div class="health-bars">
-                                    <div class="v-bar-container">
-                                        <span class="v-bar-label">RAM</span>
-                                        <div class="v-bar-track">
-                                            <div class="v-bar-fill fill-ram" id="ram-v-bar"></div>
-                                        </div>
-                                    </div>
-                                    <div class="v-bar-container">
-                                        <span class="v-bar-label">VRAM</span>
-                                        <div class="v-bar-track">
-                                            <div class="v-bar-fill fill-vram" id="vram-v-bar"></div>
+                            </div>
+                            <!-- VRAM Dial -->
+                            <div class="glass-card dial-card">
+                                <div class="dial-header">
+                                    <div class="dial-icon"><i class="fa-solid fa-display"></i></div>
+                                    <span class="dial-title">VRAM Usage</span>
+                                </div>
+                                <div class="dial-content">
+                                    <div class="circular-progress" id="vram-circ-prog" style="--prog: 0%;">
+                                        <div class="circ-inner">
+                                            <span class="circ-val" id="vram-circ-val">0%</span>
                                         </div>
                                     </div>
                                 </div>
-                                
+                            </div>
+                        </div>
+
+                        <!-- Fila Media 1: Temperature Monitor -->
+                        <div class="glass-card module-temperature-monitor">
+                            <div class="monitor-header">
+                                <div class="monitor-title">
+                                    <div class="monitor-icon"><i class="fa-solid fa-temperature-half"></i></div>
+                                    <h3>Temperature Monitor</h3>
+                                </div>
+                                <div class="monitor-tabs">
+                                    <button class="monitor-tab active" id="tab-cpu" onclick="switchTempTab('cpu')">CPU</button>
+                                    <button class="monitor-tab" id="tab-gpu" onclick="switchTempTab('gpu')">GPU</button>
+                                </div>
+                            </div>
+                            
+                            <div class="monitor-chart-container">
+                                <div class="current-temp-badge" id="current-temp-badge">
+                                    <span class="temp-label" id="current-temp-label">CPU</span>
+                                    <span class="temp-value" id="current-temp-value">0°C</span>
+                                </div>
+                                <canvas id="mainTempChart"></canvas>
+                                <div class="monitor-x-axis">
+                                    <span>1 min</span><span>45 sec</span><span>30 sec</span><span>15 sec</span><span>now</span>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Fila Media: CPU / GPU Status + Almacenamiento -->
-                        <div class="dash-row-mid">
-                            <div class="glass-card module-cpu-gpu">
-                                <h3 class="glass-title">CPU / GPU Status</h3>
-                                <div class="status-grid">
-                                    <div class="status-item">
-                                        <div class="status-head">
-                                            <div class="status-icon-box"><i class="fa-solid fa-microchip icon-cpu"></i></div>
-                                            <span id="hw-cpu-name">Analizando...</span>
-                                        </div>
-                                        <div class="status-data">
-                                            <div class="data-row"><span>Core Count:</span> <span id="hw-cpu-cores">--</span></div>
-                                            <div class="data-row"><span>Load:</span> <span id="hw-cpu-load">--</span></div>
-                                        </div>
-                                    </div>
-                                    <div class="status-item">
-                                        <div class="status-head">
-                                            <div class="status-icon-box" id="gpu-logo-box"><i class="fa-solid fa-display icon-gpu"></i></div>
-                                            <span id="hw-gpu-name">Analizando...</span>
-                                        </div>
-                                        <div class="status-data">
-                                            <div class="data-row"><span>Driver:</span> <span id="hw-gpu-driver" style="cursor: pointer; text-decoration: underline;" title="Haz clic para actualizar">--</span></div>
-                                            <div class="data-row"><span>Memory:</span> <span id="hw-gpu-mem">--</span></div>
-                                        </div>
-                                    </div>
+                        <!-- Fila Media 2: Network Monitor -->
+                        <div class="glass-card module-temperature-monitor" style="margin-top: 16px;">
+                            <div class="monitor-header">
+                                <div class="monitor-title">
+                                    <div class="monitor-icon" style="color: #00f0ff; border-color: rgba(0, 240, 255, 0.1);"><i class="fa-solid fa-wifi"></i></div>
+                                    <h3>Network Monitor</h3>
                                 </div>
                             </div>
                             
-                            <div class="glass-card module-storage">
-                                <h3 class="glass-title">MEMORIA Y ALMACENAMIENTO</h3>
-                                <div class="storage-list">
-                                    <div class="storage-item">
-                                        <div class="st-icon-box"><i class="fa-solid fa-memory"></i></div>
-                                        <span class="st-label">Memoria</span>
-                                        <span class="st-val" id="hw-ram-val">-- GB</span>
-                                    </div>
-                                    <div class="storage-item">
-                                        <div class="st-icon-box"><i class="fa-solid fa-hard-drive"></i></div>
-                                        <span class="st-label">Almacenamiento Local</span>
-                                        <span class="st-val" id="hw-disk-val">-- GB</span>
-                                    </div>
+                            <div class="monitor-chart-container">
+                                <div class="current-temp-badge" style="border-color: rgba(0, 240, 255, 0.1);">
+                                    <span class="temp-label">WIFI (Mbps)</span>
+                                    <span class="temp-value" id="net-dl-val" style="color: #00f0ff; text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);">0.0</span>
                                 </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Fila Inferior: Acciones Rápidas + Red -->
-                        <div class="dash-row-bottom">
-                            <div class="glass-card module-actions">
-                                <h3 class="glass-title">ACCIONES RÁPIDAS</h3>
-                                <div class="action-btn-red" onclick="window.location.hash='#debloater'">
-                                    <div class="action-icon-wrap"><i class="fa-solid fa-broom"></i></div>
-                                    <div class="action-text">
-                                        <h4>Limpieza Profunda</h4>
-                                        <p>Ejecuta limpieza avanzada y máxima optimización.</p>
-                                    </div>
-                                    <i class="fa-solid fa-chevron-right action-arrow"></i>
-                                </div>
-                            </div>
-                            
-                            <div class="glass-card module-network">
-                                <h3 class="glass-title">RED Y CONECTIVIDAD <i class="fa-solid fa-wifi float-right text-cyan"></i></h3>
-                                <div class="net-stats" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.8rem; color: var(--text-secondary); font-weight: 500;">
-                                    <span><i class="fa-solid fa-arrow-down" style="color:var(--cyan)"></i> <span id="net-dl">0.0</span> Mbps</span>
-                                    <span><i class="fa-solid fa-arrow-up" style="color:var(--primary-2)"></i> <span id="net-ul">0.0</span> Mbps</span>
-                                </div>
-                                <div class="network-chart-wrap">
-                                    <canvas id="netLineChart"></canvas>
+                                <canvas id="netLineChart"></canvas>
+                                <div class="monitor-x-axis">
+                                    <span>1 min</span><span>45 sec</span><span>30 sec</span><span>15 sec</span><span>now</span>
                                 </div>
                             </div>
                         </div>
@@ -291,6 +260,8 @@
             <section id="tweaks_priv" class="page tweaks-page"><div class="tweaks-container"></div></section>
             <section id="tweaks_srv" class="page tweaks-page"><div class="tweaks-container"></div></section>
             <section id="tweaks_ext" class="page tweaks-page"><div class="tweaks-container"></div></section>
+            <section id="tweaks_nvidia" class="page tweaks-page"><div class="tweaks-container"></div></section>
+            <section id="tweaks_msi" class="page tweaks-page"><div class="tweaks-container"></div></section>
 
             <button id="bulk-apply-btn" class="bulk-apply-btn glass" onclick="applySelectedTweaks()" style="display: none;">
                 <i class="fa-solid fa-wand-magic-sparkles"></i> Aplicar Optimizaciones (<span id="bulk-count">0</span>)
@@ -432,50 +403,82 @@
                 </div>
             </section>
 
-            <!-- Cleaner -->
+            <!-- Cleaner / Utilitarios -->
             <section id="cleaner" class="page">
-                <div class="cleaner-section-label">MANTENIMIENTO DEL SISTEMA</div>
-                <div class="cleaner-grid">
-                    <div class="clean-card glass-card" onclick="runTask('clean_system')">
-                        <div class="clean-icon"><i class="fa-solid fa-hard-drive"></i></div>
-                        <div class="clean-title">Sistema</div>
-                        <div class="clean-desc">Archivos temporales</div>
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px">
+                    <div style="width:48px;height:48px;border-radius:16px;background:linear-gradient(135deg,#6C6BFF,#8f6fff);display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#fff;box-shadow:0 8px 25px rgba(108,107,255,0.35)">
+                        <i class="fa-solid fa-broom"></i>
                     </div>
-                    <div class="clean-card glass-card" onclick="runTask('clean_browsers')">
-                        <div class="clean-icon" style="color: var(--cyan); text-shadow: 0 0 12px rgba(79, 209, 232, 0.4);"><i class="fa-brands fa-chrome"></i></div>
-                        <div class="clean-title">Navegadores</div>
-                        <div class="clean-desc">Caché e historial</div>
-                    </div>
-                    <div class="clean-card glass-card" onclick="runTask('clean_updates')">
-                        <div class="clean-icon" style="color: var(--success); text-shadow: 0 0 12px rgba(62, 207, 142, 0.4);"><i class="fa-solid fa-rotate"></i></div>
-                        <div class="clean-title">Windows Update</div>
-                        <div class="clean-desc">Caché de descargas</div>
-                    </div>
-                    <div class="clean-card glass-card" onclick="runTask('flush_dns')">
-                        <div class="clean-icon" style="color: var(--warning); text-shadow: 0 0 12px rgba(255, 175, 77, 0.4);"><i class="fa-solid fa-network-wired"></i></div>
-                        <div class="clean-title">Caché DNS</div>
-                        <div class="clean-desc">Mejora latencia red</div>
-                    </div>
-                    <div class="clean-card glass-card" onclick="runTask('clean_ram_standby')">
-                        <div class="clean-icon" style="color: var(--primary-2); text-shadow: 0 0 12px rgba(108, 107, 255, 0.4);"><i class="fa-solid fa-memory"></i></div>
-                        <div class="clean-title">Liberar RAM</div>
-                        <div class="clean-desc">Vacia Standby List</div>
-                    </div>
-                    <div class="clean-card glass-card" onclick="runTask('optimize_disks')">
-                        <div class="clean-icon" style="color: var(--success); text-shadow: 0 0 12px rgba(62, 207, 142, 0.4);"><i class="fa-solid fa-gauge-simple-high"></i></div>
-                        <div class="clean-title">TRIM / Defrag</div>
-                        <div class="clean-desc">Optimiza SSD y HDD</div>
+                    <div>
+                        <h2 style="color:var(--text-primary);font-size:1.3rem;font-weight:800;margin:0">Mantenimiento del Sistema</h2>
+                        <p style="color:var(--text-secondary);font-size:0.8rem;margin:2px 0 0">Limpia, optimiza y acelera tu PC con un solo clic</p>
                     </div>
                 </div>
-                <div class="cleaner-note"><i class="fa-solid fa-circle-info"></i> Selecciona un módulo para limpiarlo de forma individual, o utiliza la limpieza profunda abajo para ejecutar todo a la vez.</div>
 
-                <div class="cleaner-danger-panel glass" onclick="runDestructiveTask('clean_all', 'Esto ejecutará todas las limpiezas de golpe (caché de sistema, navegadores, updates, DNS, RAM).\n\nNo borra documentos personales. Para mejores resultados, cierra el navegador antes.\n\n¿Continuar?')">
-                    <div class="danger-icon" style="color: var(--warning);"><i class="fa-solid fa-broom"></i></div>
-                    <div class="danger-info">
-                        <strong style="color: var(--warning);">Limpieza Profunda</strong>
-                        <span>Ejecuta limpieza de sistema, navegadores y optimización en una sola pasada. Úsalo para liberar máximo espacio y mejorar rendimiento.</span>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
+                    <div class="glass-card" onclick="runTask('clean_system')" style="padding:24px 20px;cursor:pointer;text-align:center;border-radius:18px;transition:all 0.3s;position:relative;overflow:hidden" onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 35px rgba(255,60,120,0.2)'" onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                        <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#ff3c78,#ff6b6b);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.4rem;color:#fff;box-shadow:0 8px 20px rgba(255,60,120,0.3)">
+                            <i class="fa-solid fa-hard-drive"></i>
+                        </div>
+                        <div style="color:var(--text-primary);font-weight:700;font-size:0.95rem;margin-bottom:4px">Sistema</div>
+                        <div style="color:var(--text-secondary);font-size:0.75rem">Archivos temporales y caché</div>
                     </div>
-                    <i class="fa-solid fa-chevron-right danger-arrow"></i>
+
+                    <div class="glass-card" onclick="runTask('clean_browsers')" style="padding:24px 20px;cursor:pointer;text-align:center;border-radius:18px;transition:all 0.3s" onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 35px rgba(0,240,255,0.2)'" onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                        <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#00f0ff,#5c93ff);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.4rem;color:#fff;box-shadow:0 8px 20px rgba(0,240,255,0.3)">
+                            <i class="fa-brands fa-chrome"></i>
+                        </div>
+                        <div style="color:var(--text-primary);font-weight:700;font-size:0.95rem;margin-bottom:4px">Navegadores</div>
+                        <div style="color:var(--text-secondary);font-size:0.75rem">Caché, cookies e historial</div>
+                    </div>
+
+                    <div class="glass-card" onclick="runTask('clean_updates')" style="padding:24px 20px;cursor:pointer;text-align:center;border-radius:18px;transition:all 0.3s" onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 35px rgba(62,207,142,0.2)'" onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                        <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#3ecf8e,#27a85e);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.4rem;color:#fff;box-shadow:0 8px 20px rgba(62,207,142,0.3)">
+                            <i class="fa-solid fa-rotate"></i>
+                        </div>
+                        <div style="color:var(--text-primary);font-weight:700;font-size:0.95rem;margin-bottom:4px">Windows Update</div>
+                        <div style="color:var(--text-secondary);font-size:0.75rem">Caché de descargas</div>
+                    </div>
+
+                    <div class="glass-card" onclick="runTask('flush_dns')" style="padding:24px 20px;cursor:pointer;text-align:center;border-radius:18px;transition:all 0.3s" onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 35px rgba(255,175,77,0.2)'" onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                        <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#ffaf4d,#ff8c00);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.4rem;color:#fff;box-shadow:0 8px 20px rgba(255,175,77,0.3)">
+                            <i class="fa-solid fa-network-wired"></i>
+                        </div>
+                        <div style="color:var(--text-primary);font-weight:700;font-size:0.95rem;margin-bottom:4px">Caché DNS</div>
+                        <div style="color:var(--text-secondary);font-size:0.75rem">Mejora latencia de red</div>
+                    </div>
+
+                    <div class="glass-card" onclick="runTask('clean_ram_standby')" style="padding:24px 20px;cursor:pointer;text-align:center;border-radius:18px;transition:all 0.3s" onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 35px rgba(108,107,255,0.2)'" onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                        <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#6C6BFF,#8f6fff);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.4rem;color:#fff;box-shadow:0 8px 20px rgba(108,107,255,0.3)">
+                            <i class="fa-solid fa-memory"></i>
+                        </div>
+                        <div style="color:var(--text-primary);font-weight:700;font-size:0.95rem;margin-bottom:4px">Liberar RAM</div>
+                        <div style="color:var(--text-secondary);font-size:0.75rem">Vacía Standby List</div>
+                    </div>
+
+                    <div class="glass-card" onclick="runTask('optimize_disks')" style="padding:24px 20px;cursor:pointer;text-align:center;border-radius:18px;transition:all 0.3s" onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 35px rgba(62,207,142,0.2)'" onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                        <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#3ecf8e,#00b4d8);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.4rem;color:#fff;box-shadow:0 8px 20px rgba(62,207,142,0.3)">
+                            <i class="fa-solid fa-gauge-simple-high"></i>
+                        </div>
+                        <div style="color:var(--text-primary);font-weight:700;font-size:0.95rem;margin-bottom:4px">TRIM / Defrag</div>
+                        <div style="color:var(--text-secondary);font-size:0.75rem">Optimiza SSD y HDD</div>
+                    </div>
+                </div>
+
+                <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;background:rgba(108,107,255,0.08);border:1px solid rgba(108,107,255,0.15);border-radius:14px;margin-bottom:20px">
+                    <i class="fa-solid fa-circle-info" style="color:var(--primary);font-size:0.9rem"></i>
+                    <span style="color:var(--text-secondary);font-size:0.8rem">Selecciona un módulo individual o usa la limpieza profunda para ejecutar todo a la vez.</span>
+                </div>
+
+                <div class="glass-card" onclick="runDestructiveTask('clean_all', 'Esto ejecutará todas las limpiezas de golpe (caché de sistema, navegadores, updates, DNS, RAM).\n\nNo borra documentos personales. Para mejores resultados, cierra el navegador antes.\n\n¿Continuar?')" style="display:flex;align-items:center;gap:20px;padding:22px 24px;cursor:pointer;border-radius:18px;border:1px solid rgba(255,175,77,0.2);background:linear-gradient(135deg,rgba(255,175,77,0.08),rgba(255,60,120,0.05));transition:all 0.3s" onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 35px rgba(255,175,77,0.15)'" onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                    <div style="width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#ffaf4d,#ff3c78);display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#fff;box-shadow:0 8px 20px rgba(255,175,77,0.3);flex-shrink:0">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <div style="flex:1">
+                        <div style="color:#ffaf4d;font-weight:800;font-size:1rem;margin-bottom:4px">⚡ Limpieza Profunda</div>
+                        <div style="color:var(--text-secondary);font-size:0.8rem;line-height:1.4">Ejecuta limpieza de sistema, navegadores y optimización en una sola pasada.</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="color:var(--text-tertiary);font-size:1rem"></i>
                 </div>
             </section>
 

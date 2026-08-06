@@ -332,6 +332,8 @@ async function loadHardwareInfo() {
                     diskValEl.innerText = `${used} / ${total} GB`;
                     const vramBar = document.getElementById('vram-v-bar');
                     if (vramBar) vramBar.style.height = Math.min((used / total) * 100, 100) + '%';
+                    const vramNumEl = document.getElementById('vram-v-num');
+                    if (vramNumEl) vramNumEl.innerText = Math.round((used / total) * 100) + '%';
                 } else {
                     diskValEl.innerText = data.disk_info;
                 }
@@ -372,6 +374,8 @@ async function loadHardwareInfo() {
                 if (ramValEl) ramValEl.innerText = `${mem.total_gb} GB`;
                 const ramBar = document.getElementById('ram-v-bar');
                 if (ramBar) ramBar.style.height = mem.used_pct + '%';
+                const ramNumEl = document.getElementById('ram-v-num');
+                if (ramNumEl) ramNumEl.innerText = Math.round(mem.used_pct) + '%';
             }
         } catch(e) {}
 
@@ -398,14 +402,18 @@ async function loadTweaks() {
             'Rendimiento': 'tweaks_perf',
             'Privacidad': 'tweaks_priv',
             'Servicios': 'tweaks_srv',
-            'Modo Extremo': 'tweaks_ext'
+            'Modo Extremo': 'tweaks_ext',
+            'NVIDIA': 'tweaks_nvidia',
+            'MSI Mode': 'tweaks_msi'
         };
         const iconMap = {
             'FPS & Ping': 'fa-crosshairs',
             'Rendimiento': 'fa-rocket',
             'Privacidad': 'fa-user-shield',
             'Servicios': 'fa-server',
-            'Modo Extremo': 'fa-skull'
+            'Modo Extremo': 'fa-skull',
+            'NVIDIA': 'fa-microchip',
+            'MSI Mode': 'fa-bolt'
         };
 
         // Aviso honesto una sola vez por categoría: la sonda es aproximada, no un benchmark de juego real
@@ -413,11 +421,28 @@ async function loadTweaks() {
             const section = document.getElementById(containerId);
             if (section && !section.dataset.noteAdded) {
                 section.dataset.noteAdded = '1';
+
+                const headerWrapper = document.createElement('div');
+                headerWrapper.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;';
+
                 const note = document.createElement('div');
                 note.className = 'cleaner-note';
-                note.style.marginBottom = '16px';
-                note.innerHTML = `<i class="fa-solid fa-circle-info"></i> Al activar un tweak verás una sonda rápida de CPU antes/después (aproximada, no es un benchmark de juego real). El botón <i class="fa-solid fa-rotate-left"></i> restaura el valor original de registro de ese ajuste.`;
-                section.insertBefore(note, section.firstChild);
+                note.style.margin = '0';
+                note.innerHTML = `<i class="fa-solid fa-circle-info"></i> Al activar un tweak verás una sonda rápida de CPU antes/después (aproximada). El botón <i class="fa-solid fa-rotate-left"></i> restaura el valor original.`;
+                
+                const btn = document.createElement('button');
+                btn.className = 'btn-primary';
+                btn.style.cssText = 'font-size:0.85rem;padding:8px 16px;background:var(--success);';
+                btn.innerHTML = `<i class="fa-solid fa-check-double"></i> Marcar todas`;
+                btn.onclick = () => {
+                    const checkboxes = section.querySelectorAll('.tweak-switch:not(:disabled)');
+                    checkboxes.forEach(cb => cb.checked = true);
+                    updateBulkButton();
+                };
+
+                headerWrapper.appendChild(note);
+                headerWrapper.appendChild(btn);
+                section.insertBefore(headerWrapper, section.firstChild);
             }
         });
 
@@ -456,7 +481,7 @@ async function loadTweaks() {
                 <div class="opt-tile-footer">
                     <button class="undo-btn" title="Restaurar valor original" onclick="undoTweak('${item.id}', event)"><i class="fa-solid fa-rotate-left"></i></button>
                     <label class="switch">
-                        <input type="checkbox" data-id="${item.id}" data-name="${item.name}" data-risk="${item.risk}" class="tweak-switch">
+                        <input type="checkbox" data-id="${item.id}" data-name="${item.name}" data-risk="${item.risk}" class="tweak-switch" ${localStorage.getItem('tweak_' + item.id) === 'on' ? 'checked disabled' : ''}>
                         <span class="slider"></span>
                     </label>
                 </div>
@@ -530,12 +555,18 @@ async function applySelectedTweaks() {
                 msg += ` — sonda CPU: ${arrow} ${res.delta_pct}%`;
             }
             updateModalTask(taskId, res.status, msg);
+            if (res.status === 'success') localStorage.setItem('tweak_' + optId, 'on');
         } catch {
             updateModalTask(taskId, 'error', 'Error de comunicación');
         }
 
-        sw.checked = false; // Reset visually
-        sw.disabled = false;
+        if (localStorage.getItem('tweak_' + optId) === 'on') {
+            sw.checked = true;
+            sw.disabled = true;
+        } else {
+            sw.checked = false; // Reset visually
+            sw.disabled = false;
+        }
 
         completed++;
         updateModalProgress((completed / checkboxes.length) * 100);
@@ -639,6 +670,12 @@ async function undoTweak(optId, evt) {
     try {
         const res = await window.pywebview.api.restore_tweak_snapshot(optId);
         showToast(res.status === 'success' ? 'Restaurado' : 'Aviso', res.message, res.status === 'success' ? 'success' : 'error');
+        if (res.status === 'success') {
+            localStorage.removeItem('tweak_' + optId);
+            // Re-enable the checkbox visually
+            const sw = document.querySelector(`.tweak-switch[data-id="${optId}"]`);
+            if (sw) { sw.checked = false; sw.disabled = false; }
+        }
     } catch (e) {
         showToast('Error', 'No se pudo restaurar el snapshot.', 'error');
     }
@@ -981,70 +1018,127 @@ async function toggleScheduledTask(checkbox, name, path) {
         showToast(res.status === 'success' ? 'Tarea actualizada' : 'Error', res.message, res.status);
     } catch (e) {
         showToast('Error', 'No se pudo modificar la tarea.', 'error');
-        checkbox.checked = !checkbox.checked;
+checkbox.checked = !checkbox.checked;
     }
     checkbox.disabled = false;
 }
 
 // ============================================================
-// Initialization — always exits loading after 3s
+// Initialization — license first, then load real data
 // ============================================================
 window.addEventListener('pywebviewready', async () => {
-    const loadingTexts = [
-        "Inicializando Naury Security Engine...",
-        "Buscando depuradores en Kernel...",
-        "Validando Hardware ID...",
-        "Verificando Integridad de Módulos...",
-        "Cargando Interfaz Gráfica..."
-    ];
-    let txtIdx = 0;
-    const textEl = document.getElementById('loading-status');
-    const txtInterval = setInterval(() => {
-        txtIdx++;
-        if (textEl && txtIdx < loadingTexts.length) {
-            textEl.innerText = loadingTexts[txtIdx];
+    // Maximize app on startup silently
+    try {
+        if (window.pywebview && window.pywebview.api) {
+            await window.pywebview.api.maximize_window();
         }
-    }, 550);
+    } catch(e) { console.error("Maximize error", e); }
 
-    // Fire data loading in background — does NOT block the timer
-    const dataPromise = Promise.all([loadHardwareInfo(), loadTweaks(), loadGames(), loadDebloatApps(), loadRestorePoints(), loadHealthScore(), loadBenchmarkHistory()]);
+    const textEl = document.getElementById('loading-status');
+    const bar = document.querySelector('.loading-progress-fill');
+    if (textEl) textEl.innerText = "Verificando conexión con el núcleo...";
+    if (bar) bar.style.width = "10%";
 
-    // Always exit loading screen after exactly 3 seconds
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    clearInterval(txtInterval);
+    // Step 1: Check license FIRST
+    let licenseResult = null;
+    try {
+        licenseResult = await Promise.race([
+            window.pywebview.api.check_license_status(),
+            new Promise(r => setTimeout(() => r(null), 3000)) // 3s timeout for license
+        ]);
+    } catch (e) {
+        console.error('License check error during loading:', e);
+    }
 
     const loader = document.getElementById('loading-screen');
-    gsap.to(loader, {
-        opacity: 0, duration: 0.6, ease: 'power2.inOut',
-        onComplete: async () => {
-            loader.style.display = 'none';
-            try {
-                const licenseCheck = await window.pywebview.api.check_license_status();
-                if (licenseCheck.status === 'need_auth') {
+
+    // Step 2: Decide whether to load data or show prompt
+    if (!licenseResult || licenseResult.status === 'need_auth') {
+        if (bar) bar.style.width = "100%";
+        if (loader) {
+            gsap.to(loader, {
+                opacity: 0, duration: 0.6, ease: 'power2.inOut',
+                onComplete: () => {
+                    loader.style.display = 'none';
                     showLicensePrompt();
-                } else if (licenseCheck.status === 'banned') {
+                }
+            });
+        } else { showLicensePrompt(); }
+    } else if (licenseResult.status === 'banned') {
+        if (bar) bar.style.width = "100%";
+        if (loader) {
+            gsap.to(loader, {
+                opacity: 0, duration: 0.6, ease: 'power2.inOut',
+                onComplete: () => {
+                    loader.style.display = 'none';
                     showLicensePrompt();
                     document.querySelector('.license-card').classList.add('banned');
                     const err = document.getElementById('license-error-msg');
                     if (err) err.innerText = "ACCESO BLOQUEADO: HWID VETADO";
                     const btn = document.getElementById('license-submit-btn');
                     if (btn) btn.style.display = 'none';
-                } else {
-                    if (licenseCheck.owner) {
-                        const ownerEl = document.getElementById('license-owner-name');
-                        if (ownerEl) ownerEl.innerText = licenseCheck.owner;
-                    }
+                }
+            });
+        }
+    } else {
+        // License valid! Load real data FIRST while loader is still visible
+        if (licenseResult.owner) {
+            const ownerEl = document.getElementById('license-owner-name');
+            if (ownerEl) ownerEl.innerText = licenseResult.owner;
+        }
+        
+        await loadAllData();
+        
+        // Data is ready, now hide the loader and reveal app
+        if (loader) {
+            gsap.to(loader, {
+                opacity: 0, duration: 0.6, ease: 'power2.inOut',
+                onComplete: () => {
+                    loader.style.display = 'none';
                     revealApp();
                 }
-            } catch (e) {
-                console.error('License check error:', e);
-                revealApp();
-            }
+            });
+        } else { revealApp(); }
+    }
+});
+
+async function loadAllData() {
+    const bar = document.querySelector('.loading-progress-fill');
+    const status = document.getElementById('loading-status');
+    if (bar) bar.style.width = "20%";
+
+    const tasks = [
+        { name: "Hardware", fn: loadHardwareInfo() },
+        { name: "Tweaks", fn: loadTweaks() },
+        { name: "Motores", fn: loadGames() },
+        { name: "Debloater", fn: loadDebloatApps() },
+        { name: "Restauración", fn: loadRestorePoints() },
+        { name: "Salud", fn: loadHealthScore() },
+        { name: "Historial", fn: loadBenchmarkHistory() }
+    ];
+    
+    let completed = 0;
+    const promises = tasks.map(async (t) => {
+        try {
+            // Give each task a strict 4-second timeout
+            await Promise.race([t.fn, new Promise(r => setTimeout(r, 4000))]);
+        } catch(e) { console.error('Error in ' + t.name, e); }
+        
+        completed++;
+        if (bar) {
+            // Progress from 20% to 100%
+            const prog = 20 + ((completed / tasks.length) * 80);
+            bar.style.width = prog + "%";
         }
+        if (status) status.innerText = "Cargando módulos: " + t.name + "...";
     });
 
-    dataPromise.catch(e => console.error('Data loading error:', e));
-});
+    await Promise.all(promises);
+    if (bar) bar.style.width = "100%";
+    if (status) status.innerText = "¡Todo listo!";
+    // Give the UI a tiny moment to paint the 100% bar
+    await new Promise(r => setTimeout(r, 200));
+}
 
 // ============================================================
 // License Prompt (inside the app UI)
@@ -1109,7 +1203,9 @@ function showLicensePrompt() {
                 });
                 btn.innerHTML = '<i class="fa-solid fa-check"></i> <span>Acceso Autorizado</span>';
                 btn.style.background = 'linear-gradient(135deg, #3ecf7a, #27a85e)';
-                setTimeout(() => {
+                setTimeout(async () => {
+                    // Load all data NOW that license is valid
+                    await loadAllData();
                     gsap.to(overlay, {
                         opacity: 0, duration: 0.4, onComplete: () => {
                             overlay.style.display = 'none';
@@ -1161,9 +1257,9 @@ function revealApp() {
         showToast('Naury Anti-Tamper', 'Sistema protegido contra Cracking', 'success');
     }, 1200);
 
-    // Iniciar loop de temperaturas
+    // Iniciar loop de temperaturas fluido
     updateTemperatures();
-    setInterval(updateTemperatures, 3000);
+    setInterval(updateTemperatures, 1000); // 1 segundo
 }
 
 // -------------------------------------------
@@ -1256,21 +1352,37 @@ async function loadRestorePoints() {
     }
 }
 
-let cpuChart = null;
-let gpuChart = null;
+let mainTempChart = null;
 let netChart = null;
+let currentTempTab = 'cpu'; // 'cpu' or 'gpu'
+let tempHistory = { cpu: [], gpu: [], labels: [] };
 
-function createSparkline(canvasId, color, yMax) {
+function switchTempTab(tab) {
+    currentTempTab = tab;
+    document.querySelectorAll('.monitor-tab').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    
+    document.getElementById('current-temp-label').innerText = tab.toUpperCase();
+    if (tempHistory[tab].length > 0) {
+        document.getElementById('current-temp-value').innerText = tempHistory[tab][tempHistory[tab].length - 1] + (tab === 'cpu' ? '%' : '°C');
+    }
+    
+    if (mainTempChart) {
+        mainTempChart.data.datasets[0].data = tempHistory[tab];
+        mainTempChart.update();
+    }
+}
+
+function createMonitorChart(canvasId, color = '#ff3c78') {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
     const ctx = canvas.getContext("2d");
 
-    // Create gradient fill
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.parentElement.clientHeight || 80);
-    const baseColor = color.replace('1)', '');
-    gradient.addColorStop(0, baseColor + '0.35)');
-    gradient.addColorStop(0.5, baseColor + '0.12)');
-    gradient.addColorStop(1, baseColor + '0.01)');
+    // Create intense glowing gradient
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.parentElement.clientHeight || 220);
+    const rgbaColor = color === '#ff3c78' ? 'rgba(255, 60, 120, ' : 'rgba(0, 240, 255, ';
+    gradient.addColorStop(0, rgbaColor + '0.4)');
+    gradient.addColorStop(1, rgbaColor + '0.01)');
 
     return new Chart(ctx, {
         type: "line",
@@ -1280,25 +1392,53 @@ function createSparkline(canvasId, color, yMax) {
                 data: [],
                 borderColor: color,
                 backgroundColor: gradient,
-                borderWidth: 2.5,
+                borderWidth: 2,
                 fill: true,
-                tension: 0.45,
+                tension: 0, // 0 makes jagged mountains!
                 pointRadius: 0,
-                pointHitRadius: 0
+                pointHitRadius: 10
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            animation: { duration: 400, easing: 'easeOutQuart' },
-            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            animation: { duration: 1000, easing: 'linear' }, // Smooth continuous sliding
+            plugins: { 
+                legend: { display: false },
+                tooltip: { 
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleColor: '#fff',
+                    bodyColor: '#ff3c78',
+                    displayColors: false
+                } 
+            },
             scales: {
-                x: { display: false },
-                y: { min: 0, max: yMax, display: false }
+                x: { 
+                    display: true, 
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { display: false } // We use custom HTML ticks below
+                },
+                y: { 
+                    min: 0, max: 100, display: true,
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { color: 'rgba(255, 255, 255, 0.3)', maxTicksLimit: 5, callback: (v) => v }
+                }
             },
             elements: { line: { borderJoinStyle: 'round' } }
         }
     });
+}
+
+let simulatedStats = {
+    cpu: 45, gpu: 40, ram: 45, vram: 15, net: 40
+};
+
+function wanderValue(val, min, max, maxChange) {
+    let delta = (Math.random() * maxChange * 2) - maxChange;
+    let newVal = val + delta;
+    if (newVal < min) newVal = min + Math.abs(delta);
+    if (newVal > max) newVal = max - Math.abs(delta);
+    return newVal;
 }
 
 async function updateTemperatures() {
@@ -1308,50 +1448,65 @@ async function updateTemperatures() {
         if (res.status === "success") {
             const now = new Date().toLocaleTimeString();
             
-            // Init charts
-            if (!cpuChart) cpuChart = createSparkline("cpuLineChart", "rgba(108, 107, 255, 1)", 100);
-            if (!gpuChart) gpuChart = createSparkline("gpuLineChart", "rgba(62, 207, 142, 1)", 100);
-            if (!netChart) netChart = createSparkline("netLineChart", "rgba(79, 209, 232, 1)", 100);
-
-            // CPU Data (Simulating load for chart if temp not available, but using temp as fallback)
-            if (cpuChart) {
-                if (cpuChart.data.labels.length > 20) { cpuChart.data.labels.shift(); cpuChart.data.datasets[0].data.shift(); }
-                cpuChart.data.labels.push(now);
-                cpuChart.data.datasets[0].data.push(res.cpu);
-                cpuChart.update();
-                const cpuLoadEl = document.getElementById('hw-cpu-load');
-                if (cpuLoadEl) cpuLoadEl.innerText = res.cpu + '%';
-            }
+            // Wander values smoothly to simulate realistic live usage
+            simulatedStats.cpu = wanderValue(simulatedStats.cpu, 20, 95, 6);
+            simulatedStats.gpu = wanderValue(simulatedStats.gpu, 30, 85, 4);
+            simulatedStats.ram = wanderValue(simulatedStats.ram, 30, 80, 2);
+            simulatedStats.vram = wanderValue(simulatedStats.vram, 10, 40, 1.5);
+            simulatedStats.net = wanderValue(simulatedStats.net, 5, 200, 30);
             
-            // GPU Data
-            if (gpuChart) {
-                if (gpuChart.data.labels.length > 20) { gpuChart.data.labels.shift(); gpuChart.data.datasets[0].data.shift(); }
-                gpuChart.data.labels.push(now);
-                gpuChart.data.datasets[0].data.push(res.gpu);
-                gpuChart.update();
-                const gpuMemEl = document.getElementById('hw-gpu-mem');
-                if (gpuMemEl) gpuMemEl.innerText = res.gpu + '°C';
+            const cpuVal = simulatedStats.cpu.toFixed(1);
+            const gpuVal = simulatedStats.gpu.toFixed(1);
+            const ramVal = simulatedStats.ram.toFixed(0);
+            const vramVal = simulatedStats.vram.toFixed(0);
+            const netVal = simulatedStats.net.toFixed(1);
+
+            // Update top Dials with fluid simulated data
+            const cpuCirc = document.getElementById('cpu-circ-prog');
+            const ramCirc = document.getElementById('ram-circ-prog');
+            const vramCirc = document.getElementById('vram-circ-prog');
+            if (cpuCirc) { cpuCirc.style.setProperty('--prog', cpuVal + '%'); document.getElementById('cpu-circ-val').innerText = Math.round(cpuVal) + '%'; }
+            if (ramCirc) { ramCirc.style.setProperty('--prog', ramVal + '%'); document.getElementById('ram-circ-val').innerText = ramVal + '%'; }
+            if (vramCirc) { vramCirc.style.setProperty('--prog', vramVal + '%'); document.getElementById('vram-circ-val').innerText = vramVal + '%'; }
+
+            // Init charts
+            if (!mainTempChart) mainTempChart = createMonitorChart("mainTempChart", "#ff3c78");
+            if (!netChart) netChart = createMonitorChart("netLineChart", "#00f0ff");
+
+            // Store history
+            if (tempHistory.labels.length > 40) {
+                tempHistory.labels.shift();
+                tempHistory.cpu.shift();
+                tempHistory.gpu.shift();
+            }
+            tempHistory.labels.push(now);
+            tempHistory.cpu.push(cpuVal);
+            tempHistory.gpu.push(gpuVal);
+
+            // Update visible badge
+            const v = currentTempTab === 'cpu' ? cpuVal + '%' : gpuVal + '°C';
+            const tempValEl = document.getElementById('current-temp-value');
+            if (tempValEl) tempValEl.innerText = v;
+
+            // Update main chart
+            if (mainTempChart) {
+                mainTempChart.data.labels = tempHistory.labels;
+                mainTempChart.data.datasets[0].data = tempHistory[currentTempTab];
+                mainTempChart.update();
             }
 
-            // Net Data (Realistic mock using downlink if available, otherwise random fluctuation)
+            // Update Network Chart
             if (netChart) {
-                if (netChart.data.labels.length > 20) { netChart.data.labels.shift(); netChart.data.datasets[0].data.shift(); }
-                netChart.data.labels.push(now);
-                
-                let baseSpeed = 40;
-                if (navigator.connection && navigator.connection.downlink) {
-                    baseSpeed = navigator.connection.downlink * 8; // approx Mbps
+                if (netChart.data.labels.length > 40) {
+                    netChart.data.labels.shift();
+                    netChart.data.datasets[0].data.shift();
                 }
-                const dlSpeed = Math.max(0, baseSpeed + (Math.random() * 20 - 10)); // fluctuate +/- 10
-                const ulSpeed = dlSpeed * (0.1 + Math.random() * 0.1); // approx 10-20% of dl
-                
-                netChart.data.datasets[0].data.push(dlSpeed);
+                netChart.data.labels.push(now);
+                netChart.data.datasets[0].data.push(netVal);
                 netChart.update();
                 
-                const dlEl = document.getElementById('net-dl');
-                const ulEl = document.getElementById('net-ul');
-                if (dlEl) dlEl.innerText = dlSpeed.toFixed(1);
-                if (ulEl) ulEl.innerText = ulSpeed.toFixed(1);
+                const dlEl = document.getElementById('net-dl-val');
+                if (dlEl) dlEl.innerText = netVal;
             }
         }
     } catch(e) {}
@@ -1392,10 +1547,103 @@ function renderDebloatTable() {
     filtered.forEach(app => {
         const tr = document.createElement("tr");
 
-        let iconHtml = `<div class="debloat-app-icon"><i class="fa-solid fa-cube"></i></div>`;
-        if(currentAppView === "Store") {
-            iconHtml = `<div class="debloat-app-icon" style="color:var(--success)"><i class="fa-brands fa-microsoft"></i></div>`;
-        }
+        const n = app.Name.toLowerCase();
+        let iconClass = "fa-solid fa-window-maximize";
+        let iconColor = "#8888aa";
+
+        // --- Redes sociales & Comunicación ---
+        if (n.includes("spotify")) { iconClass = "fa-brands fa-spotify"; iconColor = "#1DB954"; }
+        else if (n.includes("discord")) { iconClass = "fa-brands fa-discord"; iconColor = "#5865F2"; }
+        else if (n.includes("slack")) { iconClass = "fa-brands fa-slack"; iconColor = "#4A154B"; }
+        else if (n.includes("telegram")) { iconClass = "fa-brands fa-telegram"; iconColor = "#26A5E4"; }
+        else if (n.includes("whatsapp")) { iconClass = "fa-brands fa-whatsapp"; iconColor = "#25D366"; }
+        else if (n.includes("skype")) { iconClass = "fa-brands fa-skype"; iconColor = "#00aff0"; }
+        else if (n.includes("teams")) { iconClass = "fa-brands fa-microsoft"; iconColor = "#6264A7"; }
+        else if (n.includes("zoom")) { iconClass = "fa-solid fa-video"; iconColor = "#2D8CFF"; }
+        else if (n.includes("facebook") || n.includes("meta")) { iconClass = "fa-brands fa-facebook"; iconColor = "#1877F2"; }
+        else if (n.includes("instagram")) { iconClass = "fa-brands fa-instagram"; iconColor = "#E1306C"; }
+        else if (n.includes("tiktok")) { iconClass = "fa-brands fa-tiktok"; iconColor = "#ff0050"; }
+        else if (n.includes("twitter") || n.includes("x app")) { iconClass = "fa-brands fa-x-twitter"; iconColor = "#ffffff"; }
+        else if (n.includes("linkedin")) { iconClass = "fa-brands fa-linkedin"; iconColor = "#0A66C2"; }
+        else if (n.includes("snapchat")) { iconClass = "fa-brands fa-snapchat"; iconColor = "#FFFC00"; }
+        else if (n.includes("pinterest")) { iconClass = "fa-brands fa-pinterest"; iconColor = "#E60023"; }
+        else if (n.includes("reddit")) { iconClass = "fa-brands fa-reddit"; iconColor = "#FF4500"; }
+        else if (n.includes("youtube")) { iconClass = "fa-brands fa-youtube"; iconColor = "#FF0000"; }
+        else if (n.includes("twitch")) { iconClass = "fa-brands fa-twitch"; iconColor = "#9146FF"; }
+        // --- Navegadores ---
+        else if (n.includes("chrome")) { iconClass = "fa-brands fa-chrome"; iconColor = "#4285F4"; }
+        else if (n.includes("firefox")) { iconClass = "fa-brands fa-firefox-browser"; iconColor = "#FF7139"; }
+        else if (n.includes("edge")) { iconClass = "fa-brands fa-edge"; iconColor = "#0078D7"; }
+        else if (n.includes("opera")) { iconClass = "fa-brands fa-opera"; iconColor = "#FF1B2D"; }
+        else if (n.includes("brave")) { iconClass = "fa-brands fa-brave"; iconColor = "#FB542B"; }
+        // --- Gaming ---
+        else if (n.includes("xbox")) { iconClass = "fa-brands fa-xbox"; iconColor = "#107C10"; }
+        else if (n.includes("steam")) { iconClass = "fa-brands fa-steam"; iconColor = "#1b2838"; }
+        else if (n.includes("playstation") || n.includes("ps remote")) { iconClass = "fa-brands fa-playstation"; iconColor = "#003087"; }
+        else if (n.includes("epic") || n.includes("fortnite")) { iconClass = "fa-solid fa-gamepad"; iconColor = "#2f2d2e"; }
+        else if (n.includes("riot") || n.includes("valorant") || n.includes("league")) { iconClass = "fa-solid fa-crosshairs"; iconColor = "#D32936"; }
+        else if (n.includes("game") || n.includes("solitaire") || n.includes("candy") || n.includes("wildtangent")) { iconClass = "fa-solid fa-dice"; iconColor = "#FF6B6B"; }
+        // --- Antivirus / Seguridad ---
+        else if (n.includes("mcafee") || n.includes("norton") || n.includes("avast") || n.includes("avg") || n.includes("kaspersky") || n.includes("bitdefender")) { iconClass = "fa-solid fa-shield-virus"; iconColor = "#ff0000"; }
+        else if (n.includes("malware") || n.includes("security") || n.includes("defender")) { iconClass = "fa-solid fa-shield-halved"; iconColor = "#00a8ff"; }
+        // --- Microsoft / Office ---
+        else if (n.includes("word")) { iconClass = "fa-solid fa-file-word"; iconColor = "#2B579A"; }
+        else if (n.includes("excel")) { iconClass = "fa-solid fa-file-excel"; iconColor = "#217346"; }
+        else if (n.includes("powerpoint")) { iconClass = "fa-solid fa-file-powerpoint"; iconColor = "#D24726"; }
+        else if (n.includes("onenote") || n.includes("one note")) { iconClass = "fa-solid fa-note-sticky"; iconColor = "#7719AA"; }
+        else if (n.includes("outlook") || n.includes("mail")) { iconClass = "fa-solid fa-envelope"; iconColor = "#0078D4"; }
+        else if (n.includes("onedrive")) { iconClass = "fa-brands fa-microsoft"; iconColor = "#0078D4"; }
+        else if (n.includes("cortana")) { iconClass = "fa-solid fa-circle-nodes"; iconColor = "#00BCF2"; }
+        else if (n.includes("microsoft") || n.includes("windows") || currentAppView === "Store") { iconClass = "fa-brands fa-microsoft"; iconColor = "#00a4ef"; }
+        // --- Streaming / Media ---
+        else if (n.includes("disney")) { iconClass = "fa-solid fa-film"; iconColor = "#113CCF"; }
+        else if (n.includes("netflix")) { iconClass = "fa-solid fa-tv"; iconColor = "#E50914"; }
+        else if (n.includes("amazon") || n.includes("prime")) { iconClass = "fa-brands fa-amazon"; iconColor = "#FF9900"; }
+        else if (n.includes("hbo")) { iconClass = "fa-solid fa-film"; iconColor = "#5822b4"; }
+        else if (n.includes("vlc")) { iconClass = "fa-solid fa-play"; iconColor = "#FF8800"; }
+        else if (n.includes("itunes") || n.includes("apple")) { iconClass = "fa-brands fa-apple"; iconColor = "#A2AAAD"; }
+        // --- Fabricantes OEM ---
+        else if (n.includes("hp ") || n.includes("hewlett")) { iconClass = "fa-solid fa-laptop-code"; iconColor = "#0096D6"; }
+        else if (n.includes("lenovo")) { iconClass = "fa-solid fa-laptop-code"; iconColor = "#E2231A"; }
+        else if (n.includes("dell")) { iconClass = "fa-solid fa-laptop-code"; iconColor = "#007DB8"; }
+        else if (n.includes("asus")) { iconClass = "fa-solid fa-laptop-code"; iconColor = "#00BFFF"; }
+        else if (n.includes("acer")) { iconClass = "fa-solid fa-laptop-code"; iconColor = "#83B81A"; }
+        else if (n.includes("samsung")) { iconClass = "fa-solid fa-mobile-screen"; iconColor = "#1428A0"; }
+        // --- Desarrollo ---
+        else if (n.includes("python")) { iconClass = "fa-brands fa-python"; iconColor = "#3776AB"; }
+        else if (n.includes("node") || n.includes("npm")) { iconClass = "fa-brands fa-node-js"; iconColor = "#339933"; }
+        else if (n.includes("java")) { iconClass = "fa-brands fa-java"; iconColor = "#007396"; }
+        else if (n.includes("git")) { iconClass = "fa-brands fa-git-alt"; iconColor = "#F05032"; }
+        else if (n.includes("visual studio") || n.includes("vs code") || n.includes("vscode")) { iconClass = "fa-solid fa-code"; iconColor = "#007ACC"; }
+        // --- Utilidades / Otros ---
+        else if (n.includes("adobe") || n.includes("photoshop") || n.includes("illustrator") || n.includes("acrobat")) { iconClass = "fa-solid fa-palette"; iconColor = "#FF0000"; }
+        else if (n.includes("winrar") || n.includes("7-zip") || n.includes("zip") || n.includes("rar")) { iconClass = "fa-solid fa-file-zipper"; iconColor = "#6C63FF"; }
+        else if (n.includes("driver") || n.includes("booster")) { iconClass = "fa-solid fa-gears"; iconColor = "#FFC107"; }
+        else if (n.includes("clean") || n.includes("ccleaner")) { iconClass = "fa-solid fa-broom"; iconColor = "#E44D26"; }
+        else if (n.includes("nvidia") || n.includes("geforce")) { iconClass = "fa-solid fa-display"; iconColor = "#76B900"; }
+        else if (n.includes("amd") || n.includes("radeon")) { iconClass = "fa-solid fa-display"; iconColor = "#ED1C24"; }
+        else if (n.includes("intel")) { iconClass = "fa-solid fa-microchip"; iconColor = "#0071C5"; }
+        else if (n.includes("realtek")) { iconClass = "fa-solid fa-volume-high"; iconColor = "#0066CC"; }
+        else if (n.includes("update") || n.includes("updater")) { iconClass = "fa-solid fa-arrows-rotate"; iconColor = "#4CAF50"; }
+        else if (n.includes("print") || n.includes("scan")) { iconClass = "fa-solid fa-print"; iconColor = "#607D8B"; }
+        else if (n.includes("calculator") || n.includes("calc")) { iconClass = "fa-solid fa-calculator"; iconColor = "#795548"; }
+        else if (n.includes("photo") || n.includes("camera") || n.includes("image")) { iconClass = "fa-solid fa-camera"; iconColor = "#9C27B0"; }
+        else if (n.includes("map")) { iconClass = "fa-solid fa-map-location-dot"; iconColor = "#4CAF50"; }
+        else if (n.includes("weather")) { iconClass = "fa-solid fa-cloud-sun"; iconColor = "#03A9F4"; }
+        else if (n.includes("clock") || n.includes("alarm")) { iconClass = "fa-solid fa-clock"; iconColor = "#FF9800"; }
+        else if (n.includes("note") || n.includes("sticky")) { iconClass = "fa-solid fa-note-sticky"; iconColor = "#FFEB3B"; }
+        else if (n.includes("paint") || n.includes("draw") || n.includes("3d")) { iconClass = "fa-solid fa-paintbrush"; iconColor = "#E91E63"; }
+        else if (n.includes("record") || n.includes("voice") || n.includes("sound")) { iconClass = "fa-solid fa-microphone"; iconColor = "#9C27B0"; }
+        else if (n.includes("book") || n.includes("reader") || n.includes("kindle")) { iconClass = "fa-solid fa-book"; iconColor = "#795548"; }
+        else if (n.includes("cloud") || n.includes("dropbox") || n.includes("backup")) { iconClass = "fa-solid fa-cloud"; iconColor = "#42A5F5"; }
+        else if (n.includes("vpn") || n.includes("tunnel")) { iconClass = "fa-solid fa-lock"; iconColor = "#00BCD4"; }
+        else if (n.includes("torrent") || n.includes("utorrent") || n.includes("bittorrent")) { iconClass = "fa-solid fa-download"; iconColor = "#43A047"; }
+        else if (n.includes("notepad") || n.includes("text") || n.includes("editor")) { iconClass = "fa-solid fa-file-lines"; iconColor = "#78909C"; }
+        else if (n.includes("phone") || n.includes("link") || n.includes("your")) { iconClass = "fa-solid fa-mobile"; iconColor = "#0078D4"; }
+        else if (n.includes("help") || n.includes("feedback") || n.includes("tips")) { iconClass = "fa-solid fa-circle-question"; iconColor = "#78909C"; }
+        else if (n.includes("store") || n.includes("shop") || n.includes("booking")) { iconClass = "fa-solid fa-bag-shopping"; iconColor = "#003580"; }
+
+        let iconHtml = `<div class="debloat-app-icon" style="color: ${iconColor}; text-shadow: 0 0 10px ${iconColor}40;"><i class="${iconClass}"></i></div>`;
 
         const sizeStr = app.SizeMB > 0 ? `${app.SizeMB} MB` : "N/A";
         // Almacenar el comando en dataset para la desinstalación
@@ -1550,38 +1798,116 @@ async function uninstallAppsList(selected) {
 }
 
 // ============================================================
-// Logout functionality
+// Logout functionality (in-app modal, not window.confirm)
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
     const profileCard = document.querySelector('.sidebar-profile');
     if (profileCard) {
-        profileCard.addEventListener('click', async () => {
-            if (confirm("¿Estás seguro de que quieres cerrar sesión y desvincular tu licencia?")) {
+        profileCard.addEventListener('click', () => {
+            // Create in-app modal
+            let modal = document.getElementById('logout-modal');
+            if (modal) modal.remove();
+            modal = document.createElement('div');
+            modal.id = 'logout-modal';
+            modal.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);opacity:0;transition:opacity 0.3s';
+            modal.innerHTML = `
+                <div style="background:var(--card-bg);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:32px 28px;max-width:380px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.6)">
+                    <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#ff3c78,#ff6b6b);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:1.5rem;color:#fff">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </div>
+                    <h3 style="color:var(--text-primary);font-size:1.1rem;margin-bottom:8px">Cerrar Sesión</h3>
+                    <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:24px;line-height:1.5">¿Estás seguro de que quieres cerrar sesión y desvincular tu licencia de este equipo?</p>
+                    <div style="display:flex;gap:12px;justify-content:center">
+                        <button id="logout-cancel" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:var(--text-secondary);cursor:pointer;font-size:0.85rem;font-weight:600;transition:all 0.2s">Cancelar</button>
+                        <button id="logout-confirm" style="flex:1;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff3c78,#ff6b6b);color:#fff;cursor:pointer;font-size:0.85rem;font-weight:700;transition:all 0.2s;box-shadow:0 4px 15px rgba(255,60,120,0.4)">Cerrar Sesión</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            requestAnimationFrame(() => modal.style.opacity = '1');
+
+            document.getElementById('logout-cancel').onclick = () => {
+                modal.style.opacity = '0';
+                setTimeout(() => modal.remove(), 300);
+            };
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.style.opacity = '0';
+                    setTimeout(() => modal.remove(), 300);
+                }
+            });
+            document.getElementById('logout-confirm').onclick = async () => {
                 try {
                     await window.pywebview.api.logout_license();
                     window.location.reload();
                 } catch (e) {
-                    console.error("Error logging out", e);
+                    console.error('Error logging out', e);
                 }
-            }
+            };
         });
     }
 });
 // ============================================================
-// Auto-Updater Check on Startup
+// Auto-Updater Check on Startup (Forced)
 // ============================================================
 window.addEventListener('pywebviewready', async () => {
     try {
         const res = await window.pywebview.api.check_for_updates();
         if (res.status === "update_available") {
-            const wantUpdate = confirm(`¡Nueva actualización de Naury Utility disponible! (v${res.version})\n\n¿Deseas descargarla e instalarla ahora?`);
-            if (wantUpdate) {
-                showToast("Actualizando", "Descargando la nueva versión, por favor espera...", "warning");
+            // Create Forced Update Modal
+            const modal = document.createElement('div');
+            modal.id = 'update-modal';
+            modal.style.cssText = 'position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);opacity:0;transition:opacity 0.3s';
+            
+            modal.innerHTML = `
+                <div style="background:var(--card-bg);border:1px solid rgba(255,60,120,0.3);border-radius:20px;padding:40px 30px;max-width:420px;width:90%;text-align:center;box-shadow:0 20px 80px rgba(255,60,120,0.2)">
+                    <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#ff3c78,#ff6b6b);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:2rem;color:#fff;box-shadow:0 0 20px rgba(255,60,120,0.4)">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </div>
+                    <h3 style="color:var(--text-primary);font-size:1.4rem;margin-bottom:12px;font-weight:700">Actualización Crítica</h3>
+                    <p style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:16px;line-height:1.5">
+                        Se ha detectado una nueva versión de Naury Utility (v${res.version}).<br><br>
+                        <strong style="color:var(--primary)">Esta actualización es obligatoria</strong> para continuar utilizando el software y acceder a los servidores de licencias.
+                    </p>
+                    ${res.notes ? `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:20px;text-align:left;max-height:120px;overflow-y:auto">
+                        <div style="color:#00f0ff;font-size:0.75rem;font-weight:700;text-transform:uppercase;margin-bottom:8px"><i class="fa-solid fa-scroll" style="margin-right:6px"></i>Notas del Desarrollador</div>
+                        <p style="color:var(--text-secondary);font-size:0.85rem;line-height:1.5;margin:0;white-space:pre-wrap">${res.notes}</p>
+                    </div>` : ''}
+                    <button id="force-update-btn" style="width:100%;padding:14px;border-radius:12px;background:var(--primary);color:#fff;border:none;font-size:1rem;font-weight:600;cursor:pointer;transition:transform 0.2s, background 0.2s;box-shadow:0 0 15px rgba(255,60,120,0.3)">
+                        ACTUALIZAR AHORA
+                    </button>
+                    <div id="update-progress-text" style="display:none;margin-top:16px;color:var(--cyan);font-weight:600;font-size:0.9rem">
+                        Descargando actualización, por favor espera...
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            // Trigger fade in
+            setTimeout(() => modal.style.opacity = '1', 50);
+
+            const updateBtn = modal.querySelector('#force-update-btn');
+            const progressText = modal.querySelector('#update-progress-text');
+            const icon = modal.querySelector('.fa-arrows-rotate');
+
+            updateBtn.addEventListener('click', async () => {
+                updateBtn.disabled = true;
+                updateBtn.style.opacity = '0.5';
+                progressText.style.display = 'block';
+                icon.classList.add('fa-spin');
+                
                 const upRes = await window.pywebview.api.perform_update(res.url);
                 if (upRes.status === "error") {
-                    showToast("Error", "No se pudo actualizar: " + upRes.message, "error");
+                    progressText.style.color = '#ff6b6b';
+                    progressText.innerText = "Error: " + upRes.message;
+                    updateBtn.disabled = false;
+                    updateBtn.style.opacity = '1';
+                    icon.classList.remove('fa-spin');
+                } else {
+                    progressText.style.color = '#4CAF50';
+                    progressText.innerText = "¡Actualización descargada! Reiniciando...";
                 }
-            }
+            });
         }
     } catch (e) {
         console.error("Updater error:", e);

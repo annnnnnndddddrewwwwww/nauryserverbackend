@@ -123,7 +123,7 @@ def _safe_filename(value, max_len=64):
 # ==================================================================
 # AUTO-UPDATER CONFIGURATION
 # ==================================================================
-APP_VERSION = "1.0.0"
+APP_VERSION = "2.0.0"
 GITHUB_REPO = "annnnnnndddddrewwwwww/nauryutilityoptimization"
 EXE_NAME = "Naury.exe" # El nombre de tu ejecutable final
 

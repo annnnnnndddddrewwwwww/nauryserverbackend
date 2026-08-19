@@ -132,7 +132,7 @@ def _safe_filename(value, max_len=64):
 # ==================================================================
 # AUTO-UPDATER CONFIGURATION
 # ==================================================================
-APP_VERSION = "2.0.7"
+APP_VERSION = "2.0.9"
 GITHUB_REPO = "annnnnnndddddrewwwwww/nauryutilityoptimization"
 EXE_NAME = "Naury Utility.exe" # El nombre de tu ejecutable final
 
@@ -1979,15 +1979,22 @@ class AntiTamper:
         if res and len(res) > 0:
             lic = res[0]
             if lic.get("revoked") is False:
-                # Marcar HWID en Supabase
+                payload = {}
+                
                 if not lic.get("hwid"):
-                    payload = {"hwid": self.hwid}
-                    if username:
-                        payload["owner_name"] = username
-                    self._sup_request("PATCH", f"licenses?key=eq.{key}", payload)
-                    lic["owner_name"] = username
+                    payload["hwid"] = self.hwid
                 elif lic.get("hwid") != self.hwid:
                     return False  # Clave usada en otro PC
+                    
+                # Si nos pasan username y no hay owner_name o es distinto, actualizamos
+                if username and (not lic.get("owner_name") or lic.get("owner_name") != username):
+                    payload["owner_name"] = username
+                    
+                if payload:
+                    self._sup_request("PATCH", f"licenses?key=eq.{key}", payload)
+                    if "owner_name" in payload:
+                        lic["owner_name"] = username
+                
                 return lic
         return False
 

@@ -132,7 +132,7 @@ def _safe_filename(value, max_len=64):
 # ==================================================================
 # AUTO-UPDATER CONFIGURATION
 # ==================================================================
-APP_VERSION = "2.0.1"
+APP_VERSION = "2.0.4"
 GITHUB_REPO = "annnnnnndddddrewwwwww/nauryutilityoptimization"
 EXE_NAME = "Naury.exe" # El nombre de tu ejecutable final
 
@@ -171,9 +171,11 @@ class Api:
                 if (latest_version and latest_version != APP_VERSION) or not is_installed:
                     # Find the .exe asset
                     download_url = None
+                    asset_name = ""
                     for asset in data.get('assets', []):
                         if asset['name'].endswith('.exe'):
                             download_url = asset['browser_download_url']
+                            asset_name = asset['name'].lower()
                             break
                             
                     if download_url:
@@ -188,7 +190,7 @@ class Api:
                         except:
                             pass
                             
-                        return {"status": "update_available", "version": latest_version, "url": download_url, "notes": notes}
+                        return {"status": "update_available", "version": latest_version, "url": download_url, "notes": notes, "is_installer": "installer" in asset_name}
             
             return {"status": "up_to_date", "version": APP_VERSION}
         except Exception as e:
@@ -209,7 +211,12 @@ class Api:
             with urllib.request.urlopen(req, timeout=30) as response, open(new_exe_path, 'wb') as out_file:
                 shutil.copyfileobj(response, out_file)
 
-            # 2. Create the batch script to swap the files
+            # Si lo que se descargó es el instalador (por tamaño o convención), simplemente lo ejecutamos
+            if "installer" in download_url.lower() or os.path.getsize(new_exe_path) > 30000000:
+                subprocess.Popen([new_exe_path])
+                os._exit(0)
+
+            # 2. Create the batch script to swap the files (Raw update)
             exe_basename = os.path.basename(current_exe)
             bat_content = f"""@echo off
 :wait
@@ -226,11 +233,10 @@ del "%~f0"
             with open(bat_path, 'w', encoding='utf-8') as f:
                 f.write(bat_content)
 
-            # 3. Launch the batch script without a console window
-            subprocess.Popen(bat_path, shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            # 3. Launch batch and exit
+            subprocess.Popen([bat_path], creationflags=subprocess.CREATE_NO_WINDOW)
+            os._exit(0)
             
-            # 4. Close the app to allow the swap
-            webview.windows[0].destroy()
             return {"status": "success"}
         except Exception as e:
             return {"status": "error", "message": str(e)}

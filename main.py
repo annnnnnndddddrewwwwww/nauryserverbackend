@@ -132,9 +132,9 @@ def _safe_filename(value, max_len=64):
 # ==================================================================
 # AUTO-UPDATER CONFIGURATION
 # ==================================================================
-APP_VERSION = "2.0.4"
+APP_VERSION = "2.0.5"
 GITHUB_REPO = "annnnnnndddddrewwwwww/nauryutilityoptimization"
-EXE_NAME = "Naury.exe" # El nombre de tu ejecutable final
+EXE_NAME = "Naury Utility.exe" # El nombre de tu ejecutable final
 
 from tweaks_db import TWEAKS
 

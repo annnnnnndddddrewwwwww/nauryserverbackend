@@ -157,6 +157,7 @@ navLinks.forEach(link => {
 });
 
 function switchPage(targetId) {
+    if (!targetId) return;
     navLinks.forEach(l => l.classList.remove('active'));
     const activeLink = document.querySelector(`.nav-links li[data-target="${targetId}"]`);
     if (activeLink) activeLink.classList.add('active');
@@ -312,6 +313,22 @@ async function loadHardwareInfo() {
     try {
         const data = await window.pywebview.api.get_hardware_info();
         if (data.status === 'success') {
+            // SysInfo Panel (Dashboard)
+            const pcNameEl = document.getElementById('dash-pc-name');
+            if (pcNameEl) pcNameEl.innerText = data.pc_name || 'Desconocido';
+            const osVerEl = document.getElementById('dash-os-ver');
+            if (osVerEl) osVerEl.innerText = data.os_ver || 'Desconocido';
+            const cpuDetailEl = document.getElementById('dash-cpu-detail');
+            if (cpuDetailEl) cpuDetailEl.innerText = data.cpu || 'Desconocido';
+            const moboDetailEl = document.getElementById('dash-mobo-detail');
+            if (moboDetailEl) moboDetailEl.innerText = data.mobo || 'Desconocido';
+            const netAdapterEl = document.getElementById('dash-net-adapter');
+            if (netAdapterEl) netAdapterEl.innerText = data.net_adapter || 'Desconectado';
+            const publicIpEl = document.getElementById('dash-public-ip');
+            if (publicIpEl) publicIpEl.innerText = data.public_ip || 'No disponible';
+            const hwidDetailEl = document.getElementById('dash-hwid-detail');
+            if (hwidDetailEl) hwidDetailEl.innerText = data.hwid || 'No disponible';
+
             // CPU / GPU Status Panel
             const cpuNameEl = document.getElementById('hw-cpu-name');
             if (cpuNameEl) cpuNameEl.innerText = data.cpu.split(' @')[0] || data.cpu;
@@ -395,6 +412,17 @@ async function loadTweaks() {
         if (res.status !== 'success') return;
 
         const tweaks = res.data;
+        
+        // Obtenemos el estado REAL del registro de Windows
+        let realStatuses = {};
+        try {
+            const statRes = await window.pywebview.api.get_tweak_statuses();
+            if (statRes.status === 'success') {
+                realStatuses = statRes.data;
+            }
+        } catch(e) {
+            console.warn("No se pudo obtener el estado real de los tweaks", e);
+        }
 
         // Mapeo de categorías a contenedores e iconos
         const catMap = {
@@ -481,7 +509,7 @@ async function loadTweaks() {
                 <div class="opt-tile-footer">
                     <button class="undo-btn" title="Restaurar valor original" onclick="undoTweak('${item.id}', event)"><i class="fa-solid fa-rotate-left"></i></button>
                     <label class="switch">
-                        <input type="checkbox" data-id="${item.id}" data-name="${item.name}" data-risk="${item.risk}" class="tweak-switch" ${localStorage.getItem('tweak_' + item.id) === 'on' ? 'checked disabled' : ''}>
+                        <input type="checkbox" data-id="${item.id}" data-name="${item.name}" data-risk="${item.risk}" class="tweak-switch" ${realStatuses[item.id] ? 'checked disabled' : ''}>
                         <span class="slider"></span>
                     </label>
                 </div>
@@ -555,7 +583,7 @@ async function applySelectedTweaks() {
                 msg += ` — sonda CPU: ${arrow} ${res.delta_pct}%`;
             }
             updateModalTask(taskId, res.status, msg);
-            if (res.status === 'success') localStorage.setItem('tweak_' + optId, 'on');
+            
         } catch {
             updateModalTask(taskId, 'error', 'Error de comunicación');
         }
@@ -671,7 +699,7 @@ async function undoTweak(optId, evt) {
         const res = await window.pywebview.api.restore_tweak_snapshot(optId);
         showToast(res.status === 'success' ? 'Restaurado' : 'Aviso', res.message, res.status === 'success' ? 'success' : 'error');
         if (res.status === 'success') {
-            localStorage.removeItem('tweak_' + optId);
+            
             // Re-enable the checkbox visually
             const sw = document.querySelector(`.tweak-switch[data-id="${optId}"]`);
             if (sw) { sw.checked = false; sw.disabled = false; }
@@ -1120,8 +1148,8 @@ async function loadAllData() {
     let completed = 0;
     const promises = tasks.map(async (t) => {
         try {
-            // Give each task a strict 4-second timeout
-            await Promise.race([t.fn, new Promise(r => setTimeout(r, 4000))]);
+            // Give each task a strict 12-second timeout
+            await Promise.race([t.fn, new Promise(r => setTimeout(r, 12000))]);
         } catch(e) { console.error('Error in ' + t.name, e); }
         
         completed++;
@@ -1178,8 +1206,15 @@ function showLicensePrompt() {
 
     btn.onclick = async () => {
         const key = input.value.trim();
-        if (!key) {
+        const userNameInput = document.getElementById('user-name');
+        const username = userNameInput ? userNameInput.value.trim() : "";
+        if (!key || !username) {
             gsap.fromTo(input, { x: -6 }, { x: 0, duration: 0.4, ease: 'elastic.out(1,0.3)' });
+            if (!username && userNameInput) {
+                gsap.fromTo(userNameInput, { x: -6 }, { x: 0, duration: 0.4, ease: 'elastic.out(1,0.3)' });
+            }
+            errorMsg.innerText = "Introduce tu nombre y licencia.";
+            errorMsg.style.display = 'block';
             return;
         }
 
@@ -1188,7 +1223,7 @@ function showLicensePrompt() {
         errorMsg.style.display = 'none';
 
         try {
-            const res = await window.pywebview.api.validate_key_ui(key);
+            const res = await window.pywebview.api.validate_key_ui(key, username);
 
             if (res.status === 'success') {
                 if (res.owner) {
@@ -1848,8 +1883,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 // ============================================================
-// Auto-Updater Check on Startup (Forced)
+// Navigation & Modals
 // ============================================================
+function openDiscord() {
+    if (window.pywebview && window.pywebview.api) {
+        window.pywebview.api.open_discord();
+    }
+}
+
 window.addEventListener('pywebviewready', async () => {
     try {
         const res = await window.pywebview.api.check_for_updates();
@@ -1913,3 +1954,4 @@ window.addEventListener('pywebviewready', async () => {
         console.error("Updater error:", e);
     }
 });
+

@@ -145,6 +145,11 @@ class Api:
     def get_app_version(self):
         return {"status": "success", "version": APP_VERSION}
 
+    def open_discord(self):
+        import webbrowser
+        webbrowser.open("https://discord.gg/tu_servidor")
+        return {"status": "success"}
+
     def check_for_updates(self):
         try:
             url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
@@ -153,8 +158,17 @@ class Api:
                 data = json.loads(response.read().decode('utf-8'))
                 latest_version = data.get('tag_name', '').replace('v', '')
                 
-                # Basic version comparison (1.0.1 > 1.0.0)
-                if latest_version and latest_version != APP_VERSION:
+                is_installed = False
+                try:
+                    import winreg
+                    key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\NauryUtility")
+                    winreg.CloseKey(key)
+                    is_installed = True
+                except:
+                    pass
+                
+                # Basic version comparison (1.0.1 > 1.0.0) or if not installed officially
+                if (latest_version and latest_version != APP_VERSION) or not is_installed:
                     # Find the .exe asset
                     download_url = None
                     for asset in data.get('assets', []):
@@ -164,6 +178,8 @@ class Api:
                             
                     if download_url:
                         notes = data.get('body', '')
+                        if not is_installed:
+                            notes = "⚠️ INSTALACIÓN OFICIAL REQUERIDA ⚠️\n\nEstás usando la versión portable antigua del programa. Es obligatorio que actualices e instales Naury Utility mediante el nuevo instalador oficial para continuar.\n\n" + notes
                         try:
                             # Intentar obtener las notas del Admin Panel (Supabase)
                             sup_res = AntiTamper()._sup_request("GET", "update_notes?select=*&order=id.desc&limit=1")
@@ -180,6 +196,9 @@ class Api:
 
     def perform_update(self, download_url):
         try:
+            if not getattr(sys, 'frozen', False):
+                return {"status": "error", "message": "No se puede actualizar en entorno de desarrollo (código fuente)."}
+            
             temp_dir = os.environ.get('TEMP', 'C:\\Windows\\Temp')
             new_exe_path = os.path.join(temp_dir, 'Naury_Update.exe')
             bat_path = os.path.join(temp_dir, 'update_naury.bat')
@@ -191,9 +210,10 @@ class Api:
                 shutil.copyfileobj(response, out_file)
 
             # 2. Create the batch script to swap the files
+            exe_basename = os.path.basename(current_exe)
             bat_content = f"""@echo off
 :wait
-tasklist | find /i "{EXE_NAME}" > NUL
+tasklist | find /i "{exe_basename}" > NUL
 if %ERRORLEVEL% == 0 (
     timeout /t 1 /nobreak > NUL
     goto wait
@@ -254,38 +274,65 @@ del "%~f0"
     # ══════════════════════════════════════════════
     def get_hardware_info(self):
         try:
-            ok, cpu, _ = run_ps('(Get-WmiObject Win32_Processor | Select-Object -First 1).Name')
-            cpu = cpu.strip() if ok else "Desconocido"
+            def _wmi(cmd, skip_header=True):
+                try:
+                    out = subprocess.check_output(cmd, shell=True, text=True, errors='ignore').strip()
+                    lines = [line.strip() for line in out.split('\n') if line.strip()]
+                    if skip_header and len(lines) > 1:
+                        return lines[1]
+                    return lines[0] if lines else ""
+                except:
+                    return ""
+
+            cpu = _wmi("wmic cpu get name")
+            if not cpu: cpu = "Desconocido"
             
-            ok, gpu, _ = run_ps('(Get-WmiObject Win32_VideoController | Select-Object -First 1).Name')
-            gpu = gpu.strip() if ok else "Desconocido"
+            gpu = _wmi("wmic path win32_VideoController get name")
+            if not gpu: gpu = "Desconocido"
             
-            ok, ram_out, _ = run_ps('(Get-WmiObject Win32_PhysicalMemory).Capacity')
-            ram_lines = ram_out.strip().split('\n') if ok else []
-            ram_bytes = sum([int(r.strip()) for r in ram_lines if r.strip().isdigit()])
-            ram_gb = round(ram_bytes / (1024**3))
+            try:
+                ram_out = subprocess.check_output("wmic memorychip get capacity", shell=True, text=True, errors='ignore')
+                ram_bytes = sum(int(r.strip()) for r in ram_out.split('\n') if r.strip().isdigit())
+                ram_gb = round(ram_bytes / (1024**3))
+            except:
+                ram_gb = 0
             
-            ok, mobo_prod, _ = run_ps('(Get-WmiObject Win32_BaseBoard).Product')
-            mobo_prod = mobo_prod.strip() if ok else ""
+            mobo_prod = _wmi("wmic baseboard get product")
+            mobo_mfg = _wmi("wmic baseboard get manufacturer")
             
-            ok, mobo_mfg, _ = run_ps('(Get-WmiObject Win32_BaseBoard).Manufacturer')
-            mobo_mfg = mobo_mfg.strip() if ok else ""
-            
-            ok, sb_out, _ = run_ps('Confirm-SecureBootUEFI')
+            # SecureBootUEFI in PS is slow, use a quick powershell call just for this, or check registry
+            ok, sb_out, _ = run_ps('Confirm-SecureBootUEFI', timeout=1.5)
             secure_boot = "Activado" if ok and "True" in sb_out else "Desactivado"
             
             cores = os.cpu_count()
             arch = os.environ.get('PROCESSOR_ARCHITECTURE', 'x64')
 
-            # --- NUEVOS DATOS ---
-            ok, os_ver, _ = run_ps('(Get-WmiObject Win32_OperatingSystem).Caption')
-            os_ver = os_ver.strip() if ok else "Windows"
+            os_ver = _wmi("wmic os get caption")
+            if not os_ver: os_ver = "Windows"
             
-            ok, disk_info, _ = run_ps('$d = Get-WmiObject Win32_LogicalDisk -Filter "DeviceID=\'C:\'"; "$([math]::Round($d.FreeSpace/1GB)) GB libres de $([math]::Round($d.Size/1GB)) GB"')
-            disk_info = disk_info.strip() if ok else "Desconocido"
+            try:
+                disk_out = subprocess.check_output('wmic logicaldisk where "DeviceID=\'C:\'" get freespace,size', shell=True, text=True, errors='ignore')
+                disk_lines = [l for l in disk_out.split('\n') if l.strip()]
+                if len(disk_lines) > 1:
+                    parts = disk_lines[1].split()
+                    freespace = round(int(parts[0]) / (1024**3))
+                    size = round(int(parts[1]) / (1024**3))
+                    disk_info = f"{freespace} GB libres de {size} GB"
+                else:
+                    disk_info = "Desconocido"
+            except:
+                disk_info = "Desconocido"
             
-            ok, net_adapter, _ = run_ps('(Get-NetAdapter | Where-Object Status -eq "Up" | Select-Object -First 1).InterfaceDescription')
-            net_adapter = net_adapter.strip() if ok else "Desconectado"
+            net_adapter = _wmi('wmic nic where "NetConnectionStatus=2" get name')
+            if not net_adapter: net_adapter = "Desconectado"
+            
+            try:
+                public_ip = urllib.request.urlopen('https://api.ipify.org', timeout=1).read().decode().strip()
+            except:
+                public_ip = "No disponible"
+                
+            pc_name = os.environ.get('COMPUTERNAME', 'Desconocido')
+
 
             return {
                 "status": "success", 
@@ -298,7 +345,10 @@ del "%~f0"
                 "arch": arch,
                 "os_ver": os_ver,
                 "disk_info": disk_info,
-                "net_adapter": net_adapter
+                "net_adapter": net_adapter,
+                "public_ip": public_ip,
+                "pc_name": pc_name,
+                "hwid": self.shield.hwid if hasattr(self, 'shield') else "No disponible"
             }
         except:
             return {"status": "error", "message": "No se pudo leer el hardware."}
@@ -641,9 +691,59 @@ del "%~f0"
     # ══════════════════════════════════════════════
     # DYNAMIC TWEAKS
     # ══════════════════════════════════════════════
+    def get_tweak_statuses(self):
+        """Devuelve un diccionario {opt_id: True/False} leyendo el registro real de Windows."""
+        import winreg
+        status = {}
+        for t in TWEAKS:
+            opt_id = t["id"]
+            # Si el comando es un reg add, podemos leer la ruta para saber su estado actual
+            reg_key_full = self._extract_reg_key(t.get("cmd_apply", ""))
+            
+            if not reg_key_full:
+                status[opt_id] = False # No podemos determinar su estado real, asumimos falso
+                continue
+            
+            # Intentar abrir la clave de registro (ej: HKLM\SOFTWARE\Policies\...)
+            try:
+                hive_str = reg_key_full.split("\\")[0].upper()
+                sub_key = "\\".join(reg_key_full.split("\\")[1:])
+                
+                hives = {
+                    "HKLM": winreg.HKEY_LOCAL_MACHINE,
+                    "HKCU": winreg.HKEY_CURRENT_USER,
+                    "HKCR": winreg.HKEY_CLASSES_ROOT,
+                    "HKU": winreg.HKEY_USERS,
+                    "HKCC": winreg.HKEY_CURRENT_CONFIG
+                }
+                
+                hive = hives.get(hive_str)
+                if not hive:
+                    status[opt_id] = False
+                    continue
+
+                # Solo intentamos abrir la clave. Si existe, consideramos que el tweak (generalmente policies) está aplicado
+                with winreg.OpenKey(hive, sub_key, 0, winreg.KEY_READ) as k:
+                    status[opt_id] = True
+            except:
+                # Si falla o no existe
+                status[opt_id] = False
+                
+        return {"status": "success", "data": status}
     def get_optimizations(self):
         # Envía la lista de opciones (sin comandos) a la UI, incluyendo el nivel de riesgo real
-        opts = [{"id": t["id"], "name": t["name"], "desc": t["desc"], "category": t["category"], "risk": t.get("risk", "moderate")} for t in TWEAKS]
+        opts = []
+        for t in TWEAKS:
+            # Extraemos la clave de registro que modifica el cmd_apply para que la UI pueda validarla (si aplica)
+            reg_key = self._extract_reg_key(t.get("cmd_apply", ""))
+            opts.append({
+                "id": t["id"], 
+                "name": t["name"], 
+                "desc": t["desc"], 
+                "category": t["category"], 
+                "risk": t.get("risk", "moderate"),
+                "reg_key": reg_key
+            })
         return {"status": "success", "data": opts}
 
     def toggle_optimization(self, opt_id, state):
@@ -1665,16 +1765,16 @@ foreach ($pkg in (Get-AppxPackage -ErrorAction SilentlyContinue)) {
             
         return {"status": "ok", "owner": owner}
 
-    def validate_key_ui(self, key):
+    def validate_key_ui(self, key, username=""):
         data = self.shield.check_license_attempts()
         if data.get("banned", False):
             return {"status": "banned", "message": "Acceso Denegado. Hardware ID Banneado."}
             
-        lic = self.shield._is_key_valid(key)
+        lic = self.shield._is_key_valid(key, username)
         if lic:
             data["active_key"] = key
             data["attempts"] = 0
-            data["owner"] = lic.get("owner") or lic.get("owner_name") or lic.get("name") or "Premium User"
+            data["owner"] = username or lic.get("owner_name") or "Premium User"
             with open(self.shield.license_file, 'w') as f:
                 json.dump(data, f)
             return {"status": "success", "message": "Licencia Verificada. Acceso Autorizado.", "owner": data["owner"]}
@@ -1712,10 +1812,51 @@ class AntiTamper:
         self.hwid = self._generate_hwid()
         
         # SUPABASE CLOUD CONFIG
-        self.sup_url = os.getenv("NAURY_SUPABASE_URL", "https://gjxfdalcptitsxmjhwbs.supabase.co")
-        # Usamos la clave pública segura para que el cliente pueda conectarse
-        self.sup_key = os.getenv("NAURY_SUPABASE_KEY", "sb_publishable__mYvKkvqvQopPHKtyFW6MA_UR1e9LpM")
-        
+        # Cadenas cifradas en Hexadecimal, se descifran en RAM
+        enc_url = bytes.fromhex("264021222a691c6c323849323d2f5836222d3a47302d3f5b3c2e2c477b212c2352213421547a3a21").decode("utf-8")
+        enc_key = bytes.fromhex("3d560a222c315f2a263a5036352b6b0a3f0025782823234705363e641d192d2a7514631f700b0c1c05306b15237e").decode("utf-8")
+        self.sup_url = os.getenv("NAURY_SUPABASE_URL", self._obf(enc_url))
+        self.sup_key = os.getenv("NAURY_SUPABASE_KEY", self._obf(enc_key))
+
+        # 1. HONEYPOT VARIABLES
+        self.PremiumUser = 0
+        self.VerifyLicense = False
+        self.BypassSecurity = False
+
+        # 2. Hilo de Auto-Verificacion
+        self._start_integrity_thread()
+
+    def _start_integrity_thread(self):
+        def watchdog():
+            import hashlib
+            try:
+                with open(sys.argv[0], 'rb') as f:
+                    initial_hash = hashlib.md5(f.read()).hexdigest()
+            except:
+                initial_hash = None
+
+            while True:
+                time.sleep(4.7)
+                if self.PremiumUser != 0 or self.VerifyLicense or self.BypassSecurity:
+                    self._trigger_ban("Honeypot Activado")
+                    ctypes.windll.kernel32.ExitProcess(1)
+                
+                # Self-Hashing (Check if executable/script was tampered in disk/memory)
+                if initial_hash:
+                    try:
+                        with open(sys.argv[0], 'rb') as f:
+                            current_hash = hashlib.md5(f.read()).hexdigest()
+                        if current_hash != initial_hash:
+                            self._trigger_ban("Self-Hashing Fallido: Código modificado externamente.")
+                            ctypes.windll.kernel32.ExitProcess(1)
+                    except:
+                        pass
+        t = threading.Thread(target=watchdog, daemon=True)
+        t.start()
+
+    def _obf(self, text):
+        key = "N4URYS3CUR1TY"
+        return "".join(chr(ord(c) ^ ord(key[i % len(key)])) for i, c in enumerate(text))
     def _sup_request(self, method, endpoint, payload=None):
         url = f"{self.sup_url}/rest/v1/{endpoint}"
         headers = {
@@ -1739,25 +1880,58 @@ class AntiTamper:
             mobo = mobo.strip() if ok else ""
             ok, cpu, _ = run_ps('(Get-WmiObject Win32_Processor).ProcessorId')
             cpu = cpu.strip() if ok else ""
-            raw = f"{mobo}_{cpu}"
+            ok, uuid_sys, _ = run_ps('(Get-WmiObject Win32_ComputerSystemProduct).UUID')
+            uuid_sys = uuid_sys.strip() if ok else ""
+            ok, disk, _ = run_ps('(Get-WmiObject Win32_DiskDrive | Select-Object -First 1).SerialNumber')
+            disk = disk.strip() if ok else ""
+            raw = f"{mobo}_{cpu}_{uuid_sys}_{disk}"
             return hashlib.sha256(raw.encode()).hexdigest()
         except:
             return str(uuid.getnode())
 
     def check_debugger(self):
-        # 1. Check Win32 API IsDebuggerPresent
-        if ctypes.windll.kernel32.IsDebuggerPresent():
-            self._trigger_ban("Debugger API Detectado")
+        # 0. Anti-Debugging por Tiempo (Time-based Check)
+        start_time = time.time()
         
-        # 2. Check Blacklisted Processes via tasklist (no psutil needed)
+        # 1. Check Win32 API IsDebuggerPresent
+        # Cargamos funciones nativas dinámicamente para evadir Hooks
+        kernel32 = ctypes.windll.kernel32
+        if kernel32.IsDebuggerPresent():
+            self._trigger_ban("Debugger API Detectado")
+            
+        # 2. Check Remote Debugger
+        is_debugger_present = ctypes.c_bool(False)
+        kernel32.CheckRemoteDebuggerPresent(kernel32.GetCurrentProcess(), ctypes.byref(is_debugger_present))
+        if is_debugger_present.value:
+            self._trigger_ban("Remote Debugger Detectado")
+        
+        # 3. Check Blacklisted Processes via tasklist (no psutil needed)
         try:
-            ok, tasks, _ = run_ps('Get-Process | Select-Object -ExpandProperty ProcessName | Sort-Object -Unique')
-            tasks = (tasks or '').lower()
+            tasks = subprocess.check_output('tasklist', shell=True, text=True, errors='ignore').lower()
             for bad in self.blacklisted_processes:
                 if f"{bad}.exe" in tasks or f"{bad}64.exe" in tasks:
                     self._trigger_ban(f"Proceso Prohibido Detectado: {bad}")
         except:
             pass
+
+        # 4. Anti-VM / Sandbox Checks
+        try:
+            # Detecta menos de 4GB de RAM o 1 nucleo
+            cores = os.cpu_count()
+            if cores and cores < 2:
+                self._fatal_exit("Entorno Virtual Detectado (Cores < 2).")
+            
+            # Detecta palabras clave de Máquinas Virtuales
+            gpu = subprocess.check_output('wmic path win32_VideoController get name', shell=True, text=True, errors='ignore').lower()
+            if gpu and any(vm in gpu for vm in ["vmware", "virtualbox", "vbox", "qemu", "parallels"]):
+                self._fatal_exit("Máquina Virtual / Sandbox Detectada.")
+        except:
+            pass
+
+        # 5. Comprobar si se ha parado la ejecución en un breakpoint
+        elapsed = time.time() - start_time
+        if elapsed > 15.0: # Si las validaciones han tardado más de 15 segundos, hay un humano analizando
+            self._trigger_ban("Time-Stamp Check: Ejecución pausada o manipulada.")
 
     def check_license_attempts(self):
         data = {"attempts": 0, "banned": False}
@@ -1793,7 +1967,7 @@ class AntiTamper:
             
         return data
 
-    def _is_key_valid(self, key):
+    def _is_key_valid(self, key, username=""):
         # Consulta en tiempo real a Supabase
         res = self._sup_request("GET", f"licenses?key=eq.{key}&select=*")
         if res and len(res) > 0:
@@ -1801,7 +1975,11 @@ class AntiTamper:
             if lic.get("revoked") is False:
                 # Marcar HWID en Supabase
                 if not lic.get("hwid"):
-                    self._sup_request("PATCH", f"licenses?key=eq.{key}", {"hwid": self.hwid})
+                    payload = {"hwid": self.hwid}
+                    if username:
+                        payload["owner_name"] = username
+                    self._sup_request("PATCH", f"licenses?key=eq.{key}", payload)
+                    lic["owner_name"] = username
                 elif lic.get("hwid") != self.hwid:
                     return False  # Clave usada en otro PC
                 return lic
@@ -1986,3 +2164,7 @@ if __name__ == '__main__':
     )
     
     webview.start(debug=False)
+
+
+
+

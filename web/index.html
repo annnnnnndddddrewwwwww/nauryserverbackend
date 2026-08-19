@@ -56,6 +56,11 @@
             <h2 class="license-title">Verificación de Licencia</h2>
             <p class="license-subtitle">Introduce tu clave de acceso exclusiva para enlazar este hardware con tu licencia.</p>
 
+            <div class="license-input-wrapper" style="margin-bottom: 12px;">
+                <i class="fa-solid fa-user license-input-icon"></i>
+                <input type="text" id="user-name" class="license-input" placeholder="Tu Nombre o Nickname" autocomplete="off" spellcheck="false">
+            </div>
+
             <div class="license-input-wrapper">
                 <i class="fa-solid fa-key license-input-icon"></i>
                 <input type="text" id="license-input" class="license-input" placeholder="NAURY-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false">
@@ -120,6 +125,11 @@
                 <li data-target="startup"><span class="nav-icon"><i class="fa-solid fa-power-off"></i></span><span class="nav-label">Arranque</span></li>
                 <li data-target="diskspace"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span><span class="nav-label">Disco &amp; Archivos</span></li>
                 <li data-target="repair"><span class="nav-icon"><i class="fa-solid fa-stethoscope"></i></span><span class="nav-label">Diagnóstico</span></li>
+
+                <div class="nav-divider" aria-hidden="true"></div>
+                <!-- Action Buttons -->
+                <li id="btn-discord" class="action-btn-discord" onclick="openDiscord()"><span class="nav-icon"><i class="fa-brands fa-discord"></i></span><span class="nav-label">Soporte Discord</span></li>
+                <li data-target="settings" class="action-btn-settings"><span class="nav-icon"><i class="fa-solid fa-gear"></i></span><span class="nav-label">Ajustes</span></li>
             </ul>
 
             <div class="sidebar-profile">
@@ -135,23 +145,77 @@
         </nav>
 
         <!-- Main content -->
-        <main class="content">
-            <header>
-                <h1 id="page-title">Información del Sistema</h1>
-                <div class="user-info">
-                    <i class="fa-solid fa-shield-halved"></i> Root Mode
+        <div class="content">
+            <header class="topbar">
+                <h2 id="view-title">Dashboard</h2>
+                <div class="topbar-actions">
+                    <span class="version-badge">v3.5.0 PRO</span>
                 </div>
             </header>
+            
+            <main class="main-scroll">
+                
+                <!-- Ajustes (Configuración UI) -->
+                <section id="settings" class="page">
+                    <div class="glass" style="padding:32px; border-radius:var(--r-xl); text-align:left; max-width:800px; margin: 0 auto;">
+                        <h2 style="font-size:1.8rem; margin-bottom: 24px; color:var(--text-primary);">Ajustes de Aplicación</h2>
+                        <p style="color:var(--text-secondary); margin-bottom:32px; line-height:1.6;">Opciones generales de Naury Utility. Estos ajustes modifican el comportamiento local de la aplicación y la interfaz.</p>
+                        
+                        <div style="display:flex; flex-direction:column; gap:20px;">
+                            <div class="opt-tile glass" style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px;">
+                                <div>
+                                    <h4 style="color:var(--text-primary); margin-bottom:4px;">Iniciar con Windows</h4>
+                                    <p style="color:var(--text-secondary); font-size:0.85rem;">Inicia Naury Utility minimizado en la bandeja del sistema.</p>
+                                </div>
+                                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                            </div>
+                            
+                            <div class="opt-tile glass" style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px;">
+                                <div>
+                                    <h4 style="color:var(--text-primary); margin-bottom:4px;">Aceleración por Hardware (GPU)</h4>
+                                    <p style="color:var(--text-secondary); font-size:0.85rem;">Utiliza la tarjeta gráfica para renderizar la interfaz más fluida.</p>
+                                </div>
+                                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                            </div>
 
-            <!-- Dashboard -->
-            <section id="dashboard" class="page active dark-tech-dash">
+                            <div class="opt-tile glass" style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px;">
+                                <div>
+                                    <h4 style="color:var(--text-primary); margin-bottom:4px;">Actualizaciones Automáticas</h4>
+                                    <p style="color:var(--text-secondary); font-size:0.85rem;">Buscar y descargar nuevas versiones en segundo plano al abrir.</p>
+                                </div>
+                                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                            </div>
+
+                            <div class="opt-tile glass" style="display:flex; justify-content:space-between; align-items:center; padding:16px 24px;">
+                                <div>
+                                    <h4 style="color:var(--text-primary); margin-bottom:4px;">Notificaciones Push</h4>
+                                    <p style="color:var(--text-secondary); font-size:0.85rem;">Mostrar avisos de Windows cuando terminen las optimizaciones.</p>
+                                </div>
+                                <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Dashboard -->
+                <section id="dashboard" class="page active dark-tech-dash">
                 <div class="dash-grid-new">
                     
-                    <!-- Columna Izquierda: Biblioteca Juegos (Ocultada por petición del usuario) -->
-                    <div class="dash-col-left glass-card module-games" style="display: none;">
-                        <h3 class="glass-title">Biblioteca de Juegos</h3>
-                        <div class="games-grid-glass" id="dashboard-games-container">
-                            <!-- Tarjetas de juegos inyectadas por JS -->
+                    <!-- Columna Izquierda: Información del Sistema -->
+                    <div class="dash-col-left glass-card module-sysinfo">
+                        <h3 class="glass-title"><i class="fa-solid fa-server" style="color:var(--primary); margin-right:8px;"></i>Información del Sistema</h3>
+                        <div class="sysinfo-list" style="margin-top: 16px; font-size: 0.9rem; color: var(--text-secondary); line-height: 1.8;">
+                            <div class="sys-row"><i class="fa-solid fa-desktop" style="width:20px; color:var(--text-tertiary)"></i> <strong style="color:var(--text-primary)">Equipo:</strong> <span id="dash-pc-name">Detectando...</span></div>
+                            <div class="sys-row"><i class="fa-brands fa-windows" style="width:20px; color:var(--cyan)"></i> <strong style="color:var(--text-primary)">Sistema:</strong> <span id="dash-os-ver">Detectando...</span></div>
+                            <div class="sys-row"><i class="fa-solid fa-microchip" style="width:20px; color:var(--success)"></i> <strong style="color:var(--text-primary)">CPU:</strong> <span id="dash-cpu-detail">Detectando...</span></div>
+                            <div class="sys-row"><i class="fa-solid fa-memory" style="width:20px; color:var(--primary)"></i> <strong style="color:var(--text-primary)">Mobo:</strong> <span id="dash-mobo-detail">Detectando...</span></div>
+                            <div class="sys-row"><i class="fa-solid fa-wifi" style="width:20px; color:var(--warning)"></i> <strong style="color:var(--text-primary)">Red:</strong> <span id="dash-net-adapter">Detectando...</span></div>
+                            <div class="sys-row"><i class="fa-solid fa-globe" style="width:20px; color:#4a90e2"></i> <strong style="color:var(--text-primary)">IP Pública:</strong> <span id="dash-public-ip">Detectando...</span></div>
+                            
+                            <div style="margin-top:20px; padding: 12px; background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:8px;">
+                                <div style="font-size:0.75rem; text-transform:uppercase; color:var(--text-tertiary); margin-bottom:4px; font-weight:700;"><i class="fa-solid fa-fingerprint"></i> Hardware ID (Secure)</div>
+                                <div id="dash-hwid-detail" style="font-family:var(--font-mono); font-size:0.8rem; color:var(--text-primary); word-break: break-all;">----------------------------------------</div>
+                            </div>
                         </div>
                     </div>
 
